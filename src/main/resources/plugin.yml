@@ -1,5 +1,5 @@
 name: MatrixSpigotBridge
-authors: [ Ilamparithi ]
+authors: [ Ilamparithi, David B ]
 main: com.pseudosmp.msb.MatrixSpigotBridge
 version: ${project.version}
 description: ${project.description}
