@@ -58,19 +58,19 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 		// Load config and check version
 		File configFile = new File(getDataFolder(), "config.yml");
 		FileConfiguration config = YamlConfiguration.loadConfiguration(configFile);
-		String currentVersion = config.getString("configVersion", "");
+		String currentVersion = config.getString("common.configVersion", "");
 		String defaultVersion = "";
 		try (InputStream in = getClass().getClassLoader().getResourceAsStream("config.yml")) {
 			if (in != null) {
 				YamlConfiguration defaultConfig = YamlConfiguration.loadConfiguration(new InputStreamReader(in, StandardCharsets.UTF_8));
-				defaultVersion = defaultConfig.getString("configVersion", "");
+				defaultVersion = defaultConfig.getString("common.configVersion", "");
 			}
 		} catch (IOException e) {
 			logger.warning("Could not read default config version from resources.");
 		}
 
+		// Migrate config if version is older
 		if (isVersionOlder(currentVersion, defaultVersion)) {
-			// ...migration logic as before...
 			File backupFile = new File(getDataFolder(), "config-old.yml");
 			if (configFile.exists()) {
 				configFile.renameTo(backupFile);
@@ -83,7 +83,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 					newConfig.set(key, config.get(key));
 				}
 			}
-			newConfig.set("configVersion", defaultVersion);
+			newConfig.set("common.configVersion", defaultVersion);
 			try {
 				newConfig.save(configFile);
 				logger.info("Migrated config.yml to new version, old config preserved as config-old.yml");
@@ -95,7 +95,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 			reloadConfig();
 		}
 
-        if (getConfig().getBoolean("bstats_consent", true)) {
+        if (getConfig().getBoolean("common.bstats_consent", true)) {
             int pluginId = 25993;
             Metrics metrics = new Metrics(this, pluginId);
             getLogger().info("bstats for MatrixSpigotBridge has been enabled. You can opt-out by disabling bstats in the plugin config.");

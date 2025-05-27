@@ -1,13 +1,6 @@
-### MatrixSpigotBridge by PseudoPanda - Forked from Lautriva https://github.com/pseudosmp/matrix-spigot-bridge ###
+### MatrixSpigotBridge by PseudoPanda https://github.com/pseudosmp/matrix-spigot-bridge ###
+### Forked from Lautriva https://github.com/lautriva/matrix-spigot-bridge ###
 # Note: if you want to use symbols / emojis, please save this file as UTF-8
-
-# Do not touch this!
-configVersion: 2.0.0
-
-# By default, this plugin uses bstats for collecting anonymous data on
-# how many servers this plugin is running on and how many players are playing.
-# Set this to false to opt out and disable bstats for this plugin
-bstats_consent: true
 
 # Matrix server / bot account configuration
 matrix:
@@ -28,6 +21,9 @@ matrix:
     poll_delay: 2
 
 # Prefix for commands in the matrix chat
+# Currently available commands: !ping, !list, !tps
+# Note: You can change this prefix to anything sensible (like a non-alphanumeric),
+#   but it must be a single character
     command_prefix: '!'
 
 # Message formats
@@ -63,3 +59,11 @@ common:
 # Set this value to true to use placeholders in all formats messages 
 # requires PlaceholderApi if set to true!
     usePlaceholderApi: false
+
+# By default, this plugin uses bstats for collecting anonymous data on
+# how many servers this plugin is running on and how many players are playing.
+# Set this to false to opt out and disable bstats for this plugin
+    bstats_consent: true
+
+# Do not touch this!
+    configVersion: 2.0.0
