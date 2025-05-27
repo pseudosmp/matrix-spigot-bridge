@@ -18,7 +18,10 @@ matrix:
 
 # Seconds to wait between polls to get messages from matrix server
     poll_delay: 2
-    
+
+# Prefix for commands in the matrix chat
+    command_prefix: '!'
+
 # Message formats
 # You can have many more placeholders than those provided
 #   if you use PlaceholderAPI and have set common.usePlaceholderApi to true

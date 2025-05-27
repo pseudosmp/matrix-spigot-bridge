@@ -164,7 +164,38 @@ public class Matrix {
 			return false;
 		}
 	}
+	public void handleCommand(String command, String sender_address) {
+		if (command == null || command.trim().isEmpty()) return;
 
+		String[] parts = command.trim().split("\\s+");
+		String cmd = parts[0].toLowerCase();
+
+		if ("ping".equals(cmd)) {
+			long start = System.currentTimeMillis();
+			try {
+				get("/_matrix/client/versions");
+			} catch (Exception e) {
+				sendMessage("Ping failed: " + e.getMessage());
+				return;
+			}
+			long delay = System.currentTimeMillis() - start;
+			sendMessage("Pong! Took " + delay + "ms");
+		} else if ("list".equals(cmd)) {
+			try {
+				com.pseudosmp.msb.PlayerEventsListener.PlayerStatus status = com.pseudosmp.msb.PlayerEventsListener.getPlayerList();
+				StringBuilder names = new StringBuilder();
+				for (String name : status.getNames()) {
+					if (names.length() > 0) names.append(", ");
+					names.append(name);
+				}
+				String msg = "There are " + status.getOnline() + " of a max " + status.getMax() + " players online: " +
+					(status.getOnline() > 0 ? names.toString() : "");
+				sendMessage(msg);
+			} catch (Exception e) {
+				sendMessage("Could not fetch player list.");
+			}
+		}
+	}
 	public boolean isValid() {
 		try {
 			get("/_matrix/client/api/v1/rooms/" + room_id + "/state");

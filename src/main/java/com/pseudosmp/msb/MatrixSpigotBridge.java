@@ -109,6 +109,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 
 		new BukkitRunnable() {
 			protected String matrix_message_prefix = getConfig().getString("format.matrix_chat");
+			protected String matrix_command_prefix = getConfig().getString("matrix.command_prefix");
 
 			public void run() {
 				JSONArray messages = new JSONArray();
@@ -124,13 +125,13 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 						messages.forEach(o -> {
 							JSONObject obj = (JSONObject) o;
 
-							String sender_adress = matrix.getDisplayName(obj.getString("sender"), !cacheMatrixDisplaynames);
+							String sender_address = matrix.getDisplayName(obj.getString("sender"), !cacheMatrixDisplaynames);
 
 							sendMessageToMinecraft(
 								matrix_message_prefix,
 								obj.getJSONObject("content").getString("body"),
 								null,
-								sender_adress
+								sender_address
 							);
 						});
 					}
