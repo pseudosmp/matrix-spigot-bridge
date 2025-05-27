@@ -1,18 +1,13 @@
-## Project abandoned, looking for a fork
+# [MatrixSpigotBridge (fork) on Spigot]()
 
-I don't have time to develop anymore on this plugin, I'm looking for someone to make a fork
+MatrixSpigotBridge is a Spigot plugin that uses [Matrix.org](https://matrix.org) 'An instant messaging protocol' to let interact with the players without logging onto the Minecraft server.
 
-See [this](https://github.com/lautriva/matrix-spigot-bridge/issues/9) issue for more details
+This is a fork of MatrixSpigotBridge that aims to continue support and add new features. Currently, this fork adds these features:
+- Matrix room commands:
 
---------
+![image](https://github.com/user-attachments/assets/ecdb0cf0-ab6a-4368-8216-fe377826b66c)
 
-[![Logo](https://github.com/dav64/matrix-spigot-bridge/raw/master/logo.jpg)](https://github.com/dav64/matrix-spigot-bridge/raw/master/logo.jpg)
-
-# MatrixSpigotBridge
-
-MatrixSpigotBridge is a Spigot plugin that uses [Matrix.org](https://matrix.org 'An instant messaging protocol') to let interact with the players without being connected on Minecraft.
-
-This will let players the ability to chat with people on your Matrix server as well as having people on the Matrix server be able to chat with people on the Minecraft server
+This will let players the ability to chat with people on your Matrix room as well as having people on the Matrix room be able to chat with people on the Minecraft server.
 
 The plugin could be useful for example in the situation of someone not being at their computer and wanting to talk to in-game players.
 
@@ -20,10 +15,9 @@ If you like placeholders, we do too!
 [PlaceholderAPI](https://www.spigotmc.org/resources/placeholderapi.6245 'Plugin PlaceholderAPI by clip') is supported so if you have it, you can add fancy placeholders in all plugin's messages :)
 (for example to display in which server / faction / ... the player sending the message in)
 
-Latest build + More informations here https://www.spigotmc.org/resources/matrixspigotbridge.96738/
+Building:
+1. Clone the project (the version/branch of your choice)
+2. Build using `mvn install`
 
-## Building Requisites
-org.json
-
-## Working Minecraft Versions
-1.13, 1.14, 1.15, 1.16, 1.17, 1.18, 1.19, 1.20
+[bStats - MatrixSpigotBridge](https://bstats.org/plugin/bukkit/MatrixSpigotBridge/25993)
+![image](https://bstats.org/signatures/bukkit/MatrixSpigotBridge.svg)
