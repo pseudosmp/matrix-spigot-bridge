@@ -52,48 +52,8 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 
 		logger.info("Starting MatrixSpigotBridge");
 
-		// Save default config if not present
 		this.saveDefaultConfig();
-
-		// Load config and check version
-		File configFile = new File(getDataFolder(), "config.yml");
-		FileConfiguration config = YamlConfiguration.loadConfiguration(configFile);
-		String currentVersion = config.getString("common.configVersion", "");
-		String defaultVersion = "";
-		try (InputStream in = getClass().getClassLoader().getResourceAsStream("config.yml")) {
-			if (in != null) {
-				YamlConfiguration defaultConfig = YamlConfiguration.loadConfiguration(new InputStreamReader(in, StandardCharsets.UTF_8));
-				defaultVersion = defaultConfig.getString("common.configVersion", "");
-			}
-		} catch (IOException e) {
-			logger.warning("Could not read default config version from resources.");
-		}
-
-		// Migrate config if version is older
-		if (isVersionOlder(currentVersion, defaultVersion)) {
-			File backupFile = new File(getDataFolder(), "config-old.yml");
-			if (configFile.exists()) {
-				configFile.renameTo(backupFile);
-				logger.warning("Old config.yml backed up as config-old.yml");
-			}
-			saveResource("config.yml", true);
-			FileConfiguration newConfig = YamlConfiguration.loadConfiguration(configFile);
-			for (String key : config.getKeys(true)) {
-				if (newConfig.contains(key)) {
-					newConfig.set(key, config.get(key));
-				}
-			}
-			newConfig.set("common.configVersion", defaultVersion);
-			try {
-				newConfig.save(configFile);
-				logger.info("Migrated config.yml to new version, old config preserved as config-old.yml");
-			} catch (IOException e) {
-				logger.log(Level.SEVERE, "Failed to save migrated config.yml", e);
-				Bukkit.getPluginManager().disablePlugin(this);
-				return;
-			}
-			reloadConfig();
-		}
+		reloadConfig();
 
         if (getConfig().getBoolean("common.bstats_consent", true)) {
             int pluginId = 25993;
@@ -172,7 +132,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 
 		new BukkitRunnable() {
 			protected String matrix_message_prefix = getConfig().getString("format.matrix_chat");
-			protected String matrix_command_prefix = getConfig().getString("matrix.command_prefix");
+			protected String matrix_command_prefix = getConfig().getString("matrix.command_prefix", "!");
 
 			public void run() {
 				JSONArray messages = new JSONArray();
