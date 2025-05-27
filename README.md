@@ -15,6 +15,8 @@ If you like placeholders, we do too!
 [PlaceholderAPI](https://www.spigotmc.org/resources/placeholderapi.6245 'Plugin PlaceholderAPI by clip') is supported so if you have it, you can add fancy placeholders in all plugin's messages :)
 (for example to display in which server / faction / ... the player sending the message in)
 
+Support and Feature Requests in [SpigotMC Resource Discussion Tab](https://www.spigotmc.org/threads/matrixspigotbridge-fork.691428/) / [Discord](https://dsc.gg/pseudoforceyt) only! Do NOT use the issues tab for this.
+
 Building:
 1. Clone the project (the version/branch of your choice)
 2. Build using `mvn install`
