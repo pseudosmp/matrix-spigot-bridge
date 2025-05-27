@@ -126,8 +126,12 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 							JSONObject obj = (JSONObject) o;
 
 							String sender_address = matrix.getDisplayName(obj.getString("sender"), !cacheMatrixDisplaynames);
+							String body = obj.getJSONObject("content").getString("body");
 
-							sendMessageToMinecraft(
+							if (body.startsWith(matrix_command_prefix)) {
+								String command = body.substring(matrix_command_prefix.length()).trim();
+								matrix.handleCommand(command, sender_address);
+							} else sendMessageToMinecraft(
 								matrix_message_prefix,
 								obj.getJSONObject("content").getString("body"),
 								null,

@@ -170,30 +170,44 @@ public class Matrix {
 		String[] parts = command.trim().split("\\s+");
 		String cmd = parts[0].toLowerCase();
 
-		if ("ping".equals(cmd)) {
-			long start = System.currentTimeMillis();
-			try {
-				get("/_matrix/client/versions");
-			} catch (Exception e) {
-				sendMessage("Ping failed: " + e.getMessage());
-				return;
-			}
-			long delay = System.currentTimeMillis() - start;
-			sendMessage("Pong! Took " + delay + "ms");
-		} else if ("list".equals(cmd)) {
-			try {
-				com.pseudosmp.msb.PlayerEventsListener.PlayerStatus status = com.pseudosmp.msb.PlayerEventsListener.getPlayerList();
-				StringBuilder names = new StringBuilder();
-				for (String name : status.getNames()) {
-					if (names.length() > 0) names.append(", ");
-					names.append(name);
+		switch (cmd) {
+			case "ping":
+				long start = System.currentTimeMillis();
+				try {
+					get("/_matrix/client/versions");
+				} catch (Exception e) {
+					sendMessage("Ping failed: " + e.getMessage());
+					return;
 				}
-				String msg = "There are " + status.getOnline() + " of a max " + status.getMax() + " players online: " +
-					(status.getOnline() > 0 ? names.toString() : "");
-				sendMessage(msg);
-			} catch (Exception e) {
-				sendMessage("Could not fetch player list.");
-			}
+				long delay = System.currentTimeMillis() - start;
+				sendMessage("Pong! Took " + delay + "ms");
+				break;
+			case "list":
+				try {
+					com.pseudosmp.msb.ServerInfo.PlayerStatus status = com.pseudosmp.msb.ServerInfo.getPlayerList();
+					StringBuilder names = new StringBuilder();
+					for (String name : status.getNames()) {
+						if (names.length() > 0) names.append(", ");
+						names.append(name);
+					}
+					String msg = "There are " + status.getOnline() + " of a max " + status.getMax() + " players online: " +
+						(status.getOnline() > 0 ? names.toString() : "");
+					sendMessage(msg);
+				} catch (Exception e) {
+					sendMessage("Could not fetch player list.");
+				}
+				break;
+			case "tps":
+				try {
+					double tps = com.pseudosmp.msb.ServerInfo.getTps();
+					sendMessage("Current server TPS: " + String.format("%.2f", tps));
+				} catch (Exception e) {
+					sendMessage("Could not fetch server TPS.");
+				}
+				break;
+			default:
+				// Unknown command, optionally handle or ignore
+				break;
 		}
 	}
 	public boolean isValid() {
