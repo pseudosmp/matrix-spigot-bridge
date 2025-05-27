@@ -1,5 +1,13 @@
-# MatrixSpigotBridge configuration file
+### MatrixSpigotBridge by PseudoPanda - Forked from Lautriva https://github.com/pseudosmp/matrix-spigot-bridge ###
 # Note: if you want to use symbols / emojis, please save this file as UTF-8
+
+# Do not touch this!
+configVersion: 2.0.0
+
+# By default, this plugin uses bstats for collecting anonymous data on
+# how many servers this plugin is running on and how many players are playing.
+# Set this to false to opt out and disable bstats for this plugin
+bstats_consent: true
 
 # Matrix server / bot account configuration
 matrix:

@@ -5,12 +5,13 @@
 
     <groupId>com.pseudosmp</groupId>
     <artifactId>matrix-spigot-bridge</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>2.0.0</version>
     <packaging>jar</packaging>
 
     <name>MatrixSpigotBridge</name>
     <description>Bridge between Matrix and Spigot (Minecraft) server</description>
     <url>https://github.com/pseudosmp/matrix-spigot-bridge</url>
+    <inceptionYear>%year%</inceptionYear>
 
     <dependencies>
         <dependency>
@@ -20,15 +21,21 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>org.json</groupId>
-            <artifactId>json</artifactId>
-            <version>20250517</version>
-        </dependency>
-        <dependency>
             <groupId>me.clip</groupId>
              <artifactId>placeholderapi</artifactId>
              <version>2.11.6</version>
             <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.bstats</groupId>
+            <artifactId>bstats-bukkit</artifactId>
+            <version>3.0.2</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.json</groupId>
+            <artifactId>json</artifactId>
+            <version>20250517</version>
         </dependency>
     </dependencies>
 
@@ -43,12 +50,44 @@
         </repository>
     </repositories>
 
+    <organization>
+        <name>The Pseudo Force</name>
+        <url>https://github.com/pseudoforceyt</url>
+    </organization>
+
     <build>
+       <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.11.0</version>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.5.1</version>
+                <configuration>
+                    <relocations>
+                        <relocation>
+                            <pattern>org.bstats</pattern>
+                            <shadedPattern>com.pseudosmp.msb.shaded.org.bstats</shadedPattern>
+                        </relocation>
+                    </relocations>
+                </configuration>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

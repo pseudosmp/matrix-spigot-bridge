@@ -2,6 +2,9 @@ package com.pseudosmp.msb;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
@@ -11,6 +14,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bstats.bukkit.Metrics;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -21,6 +25,19 @@ import com.pseudosmp.tools.Matrix;
 public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 	private java.util.logging.Logger logger;
 	private Matrix matrix;
+
+	private boolean isVersionOlder(String current, String target) {
+		if (current == null || current.isEmpty()) return true;
+		String[] c = current.split("\\.");
+		String[] t = target.split("\\.");
+		for (int i = 0; i < Math.max(c.length, t.length); i++) {
+			int cv = i < c.length ? Integer.parseInt(c[i]) : 0;
+			int tv = i < t.length ? Integer.parseInt(t[i]) : 0;
+			if (cv < tv) return true;
+			if (cv > tv) return false;
+		}
+		return false;
+	}
 
 	protected boolean canUsePapi = false;
 	protected boolean cacheMatrixDisplaynames = false;
@@ -35,8 +52,54 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 
 		logger.info("Starting MatrixSpigotBridge");
 
+		// Save default config if not present
 		this.saveDefaultConfig();
-		reloadConfig();
+
+		// Load config and check version
+		File configFile = new File(getDataFolder(), "config.yml");
+		FileConfiguration config = YamlConfiguration.loadConfiguration(configFile);
+		String currentVersion = config.getString("configVersion", "");
+		String defaultVersion = "";
+		try (InputStream in = getClass().getClassLoader().getResourceAsStream("config.yml")) {
+			if (in != null) {
+				YamlConfiguration defaultConfig = YamlConfiguration.loadConfiguration(new InputStreamReader(in, StandardCharsets.UTF_8));
+				defaultVersion = defaultConfig.getString("configVersion", "");
+			}
+		} catch (IOException e) {
+			logger.warning("Could not read default config version from resources.");
+		}
+
+		if (isVersionOlder(currentVersion, defaultVersion)) {
+			// ...migration logic as before...
+			File backupFile = new File(getDataFolder(), "config-old.yml");
+			if (configFile.exists()) {
+				configFile.renameTo(backupFile);
+				logger.warning("Old config.yml backed up as config-old.yml");
+			}
+			saveResource("config.yml", true);
+			FileConfiguration newConfig = YamlConfiguration.loadConfiguration(configFile);
+			for (String key : config.getKeys(true)) {
+				if (newConfig.contains(key)) {
+					newConfig.set(key, config.get(key));
+				}
+			}
+			newConfig.set("configVersion", defaultVersion);
+			try {
+				newConfig.save(configFile);
+				logger.info("Migrated config.yml to new version, old config preserved as config-old.yml");
+			} catch (IOException e) {
+				logger.log(Level.SEVERE, "Failed to save migrated config.yml", e);
+				Bukkit.getPluginManager().disablePlugin(this);
+				return;
+			}
+			reloadConfig();
+		}
+
+        if (getConfig().getBoolean("bstats_consent", true)) {
+            int pluginId = 25993;
+            Metrics metrics = new Metrics(this, pluginId);
+            getLogger().info("bstats for MatrixSpigotBridge has been enabled. You can opt-out by disabling bstats in the plugin config.");
+        }
 
 		cacheMatrixDisplaynames = getConfig().getBoolean("common.cacheMatrixDisplaynames");
 
