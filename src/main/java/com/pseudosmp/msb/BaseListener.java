@@ -1,24 +1,20 @@
-package re.dbn.ked.msb;
+package com.pseudosmp.msb;
 
 import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
 
-public class BaseListener implements Listener
-{
+public class BaseListener implements Listener {
 	protected MatrixSpigotBridge _plugin;
 
-    public BaseListener(MatrixSpigotBridge plugin)
-    {
+    public BaseListener(MatrixSpigotBridge plugin) {
     	this._plugin = plugin;
     }
 
-    protected void sendMatrixMessage(String format, String message)
-    {
+    protected void sendMatrixMessage(String format, String message) {
     	sendMatrixMessage(format, message, null);
     }
 
-    protected void sendMatrixMessage(String format, String message, Player player)
-    {
+    protected void sendMatrixMessage(String format, String message, Player player) {
     	if (format == null || format.isEmpty())
     		return;
 
