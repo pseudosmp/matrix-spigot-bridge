@@ -1,6 +1,6 @@
-# [MatrixSpigotBridge (fork) on Spigot]()
+# [MatrixSpigotBridge (fork) on Spigot](https://www.spigotmc.org/resources/matrixspigotbridge-fork.125450/)
 
-MatrixSpigotBridge is a Spigot plugin that uses [Matrix.org](https://matrix.org) 'An instant messaging protocol' to let interact with the players without logging onto the Minecraft server.
+MatrixSpigotBridge is a Spigot plugin that uses [matrix.org](https://matrix.org), an instant messaging protocol, to let interact with the players without logging onto the Minecraft server.
 
 This is a fork of MatrixSpigotBridge that aims to continue support and add new features. Currently, this fork adds these features:
 - Matrix room commands:
