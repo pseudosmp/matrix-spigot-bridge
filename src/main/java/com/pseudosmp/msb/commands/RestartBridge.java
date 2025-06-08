@@ -33,13 +33,13 @@ public class RestartBridge implements CommandExecutor {
             plugin.cacheMatrixDisplaynames = plugin.getConfig().getBoolean("common.cacheMatrixDisplaynames");
             plugin.canUsePapi = plugin.getConfig().getBoolean("common.usePlaceholderApi")
                     && plugin.getServer().getPluginManager().getPlugin("PlaceholderAPI") != null;
-            bridgeStarted = plugin.startBridge();
+            plugin.startBridgeAsync(sender);
         } catch (Exception e) {
             sender.sendMessage("§cFailed to restart Matrix bridge: " + e.getMessage());
             plugin.getLogger().log(java.util.logging.Level.SEVERE, "Failed to restart Matrix bridge", e);
         }
 
-        if (bridgeStarted) {
+        if (plugin.getMatrix() != null && plugin.getMatrix().isValid()) {
             sender.sendMessage("§eMatrix bridge restarted successfully.");
         } 
         return true;

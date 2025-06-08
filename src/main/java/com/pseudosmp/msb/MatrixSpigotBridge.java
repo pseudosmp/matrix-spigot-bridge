@@ -8,12 +8,14 @@ import java.nio.charset.StandardCharsets;
 import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
+import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scheduler.BukkitTask;
 import org.bstats.bukkit.Metrics;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -28,7 +30,8 @@ import com.pseudosmp.tools.game.PlayerEventsListener;
 
 public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 	private java.util.logging.Logger logger;
-	protected BukkitRunnable matrixPollerTask;
+	protected BukkitRunnable matrixPoller;
+	public BukkitTask matrixPollerTask = null;
 	public Matrix matrix;
 
 	public boolean canUsePapi = false;
@@ -38,77 +41,99 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 		return matrix;
 	}
 
-	public boolean startBridge() {
+	public void startBridgeAsync(CommandSender sender) {
 		logger.info("Connecting to Matrix server");
-		try {
-			matrixPollerTask.cancel();
-		} catch (Exception e) {
-			// Ignore if the task was not running
-		}
 
-		HttpsTrustAll.ignoreAllSSL();
-
-		matrix = new Matrix(getConfig().getString("matrix.server"), getConfig().getString("matrix.user_id"));
-		// Init token file
-		File tokenFile = new File(getDataFolder(), "access.yml");
-		FileConfiguration tokenConfiguration;
-
-		if (!tokenFile.exists()) {
-			tokenConfiguration = new YamlConfiguration();
-			tokenConfiguration.set("token", "");
-
+		// Cancel previous poller if running
+		if (matrixPollerTask != null) {
 			try {
-				tokenConfiguration.save(tokenFile);
-			} catch (IOException e) {
-				logger.log(Level.SEVERE, "Could not save config to " + tokenFile, e);
-				logger.log(Level.SEVERE, "This will not prevent the bridge from working, but new access tokens will be generated every time.");
-			}
-		} else {
-			tokenConfiguration = YamlConfiguration.loadConfiguration(tokenFile);
+				matrixPollerTask.cancel();
+			} catch (IllegalStateException ignored) {}
+			matrixPollerTask = null;
 		}
 
-		//  Check if we already have an access token
-		String token = tokenConfiguration.getString("token");
-		if (token != null && !token.isEmpty()) {
-			logger.info("Access token found in access.yml");
-			matrix.setAccessToken(token);
-		} else {
-			logger.info("No access token found, trying to login...");
+		Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
+			HttpsTrustAll.ignoreAllSSL();
 
-			//
-			if (matrix.login(getConfig().getString("matrix.password"))) {
-				tokenConfiguration.set("token", matrix.getAccessToken());
+			matrix = new Matrix(getConfig().getString("matrix.server"), getConfig().getString("matrix.user_id"));
+			// Init token file
+			File tokenFile = new File(getDataFolder(), "access.yml");
+			FileConfiguration tokenConfiguration;
+
+			if (!tokenFile.exists()) {
+				tokenConfiguration = new YamlConfiguration();
+				tokenConfiguration.set("token", "");
 				try {
 					tokenConfiguration.save(tokenFile);
-					logger.info("Token saved in access.yml");
 				} catch (IOException e) {
 					logger.log(Level.SEVERE, "Could not save config to " + tokenFile, e);
+					logger.log(Level.SEVERE, "This will not prevent the bridge from working, but new access tokens will be generated every time.");
+				}
+			} else {
+				tokenConfiguration = YamlConfiguration.loadConfiguration(tokenFile);
+			}
+
+			//  Check if we already have an access token
+			String token = tokenConfiguration.getString("token");
+			if (token != null && !token.isEmpty()) {
+				logger.info("Access token found in access.yml");
+				matrix.setAccessToken(token);
+			} else {
+				logger.info("No access token found, trying to login...");
+				if (matrix.login(getConfig().getString("matrix.password"))) {
+					tokenConfiguration.set("token", matrix.getAccessToken());
+					try {
+						tokenConfiguration.save(tokenFile);
+						logger.info("Token saved in access.yml");
+					} catch (IOException e) {
+						logger.log(Level.SEVERE, "Could not save config to " + tokenFile, e);
+					}
 				}
 			}
-		}
 
-		// Check all configuration are ok
-		if (
-			!getConfig().contains("matrix.room_id") || !getConfig().contains("matrix.user_id")
-			|| getConfig().getString("matrix.room_id").isEmpty() || getConfig().getString("matrix.user_id").isEmpty()
-		) {
-			logger.log(Level.SEVERE, "Invalid configuration! (checking upper errors might help you)");
-			return false;
-		}
+			// Check all configuration are ok
+			if (
+				!getConfig().contains("matrix.room_id") || !getConfig().contains("matrix.user_id")
+				|| getConfig().getString("matrix.room_id").isEmpty() || getConfig().getString("matrix.user_id").isEmpty()
+			) {
+				logger.log(Level.SEVERE, "Invalid configuration! (checking upper errors might help you)");
+				if (sender != null) {
+					Bukkit.getScheduler().runTask(this, () ->
+						sender.sendMessage("§cInvalid configuration! (checking upper errors might help you)")
+					);
+				}
+				return;
+			}
 
-		if (!matrix.joinRoom(getConfig().getString("matrix.room_id")) || !matrix.isValid()) {
-			logger.log(Level.SEVERE, "Could not connect to server! Please check your configuration!");
-			return false;
-		}
-		
-		logger.info("Connected to Matrix server as " + getConfig().getString("matrix.user_id")+ " in room " + getConfig().getString("matrix.room_id"));
-		matrixPollerTask.runTaskTimerAsynchronously(this, 0, getConfig().getInt("matrix.poll_delay") * 20);
+			if (!matrix.joinRoom(getConfig().getString("matrix.room_id")) || !matrix.isValid()) {
+				logger.log(Level.SEVERE, "Could not connect to server! Please check your configuration and run /msb restart!");
+				if (sender != null) {
+					Bukkit.getScheduler().runTask(this, () ->
+						sender.sendMessage("§cCould not connect to server! Please check your configuration and run /msb restart!")
+					);
+				}
+				return;
+			}
 
-		return true;
+			logger.info("Connected to Matrix server as " + getConfig().getString("matrix.user_id") + " in room " + getConfig().getString("matrix.room_id"));
+
+			// Start poller on main thread
+			Bukkit.getScheduler().runTask(this, () -> {
+				matrixPollerTask = matrixPoller.runTaskTimerAsynchronously(this, 0, getConfig().getInt("matrix.poll_delay") * 20);
+			});
+
+			if (sender != null) {
+				Bukkit.getScheduler().runTask(this, () ->
+					sender.sendMessage("§aMatrix bridge connected!")
+				);
+			}
+		});
 	}
 
 	@Override
 	public void onEnable() {
+		boolean isFirstRun = false;
+		boolean bridgeStarted = false;
 		logger = getLogger();
 
 		logger.info("Starting MatrixSpigotBridge");
@@ -117,6 +142,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 		boolean newConfig = !configFile.exists();
 		this.saveDefaultConfig();
 		if (newConfig) {
+			isFirstRun = true;
 			String firstRun = "Config generated for the first time! Please edit config.yml and run /msb restart to start the bridge.";
 			getLogger().warning(firstRun);
 			// Optionally notify online ops:
@@ -144,7 +170,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 		getCommand("msb").setExecutor(msbCommand);
 		getCommand("msb").setTabCompleter(msbCommand);
 
-		matrixPollerTask = new BukkitRunnable() {
+		matrixPoller = new BukkitRunnable() {
 			protected String matrix_message_prefix = getConfig().getString("format.matrix_chat");
 			protected String matrix_command_prefix = getConfig().getString("matrix.command_prefix", "!");
 
@@ -183,14 +209,16 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 		};
 		
 		// Connect to Matrix Server
-		boolean bridgeStarted = startBridge();
+		if (!isFirstRun) {
+			startBridgeAsync(null);
+		}
 		// Register event handlers
 		getServer().getPluginManager().registerEvents(new MinecraftChatListener(this), this);
 		getServer().getPluginManager().registerEvents(new PlayerEventsListener(this), this);
 
 		logger.info("Started!");
 
-		if (bridgeStarted) {
+		if (matrix != null && matrix.isValid()) {
 			String start_message = getConfig().getString("format.server.start");
 			if (start_message != null && !start_message.isEmpty())
 				sendMessageToMatrix(start_message, "", null);
