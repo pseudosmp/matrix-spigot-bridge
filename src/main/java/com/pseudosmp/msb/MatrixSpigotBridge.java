@@ -40,8 +40,10 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 
 	public boolean startBridge() {
 		logger.info("Connecting to Matrix server");
-		if (matrixPollerTask.getTaskId() != -1) {
+		try {
 			matrixPollerTask.cancel();
+		} catch (Exception e) {
+			// Ignore if the task was not running
 		}
 
 		HttpsTrustAll.ignoreAllSSL();
