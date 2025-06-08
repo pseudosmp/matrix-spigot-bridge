@@ -262,10 +262,17 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 	@Override
 	public void onDisable() {
 		String stop_message = getConfig().getString("format.server.stop");
-		if (stop_message != null && !stop_message.isEmpty() && matrix != null && matrix.isValid())
-			// Run async or else server shutdown will freeze
-			Bukkit.getScheduler().runTaskAsynchronously(this, () ->
-				sendMessageToMatrix(stop_message, "", null)
-			);
+		if (stop_message != null && !stop_message.isEmpty() && matrix != null && matrix.isValid()) {
+			Thread shutdownThread = new Thread(() -> {
+				try {
+					sendMessageToMatrix(stop_message, "", null);
+				} catch (Exception ignored) {}
+			});
+			shutdownThread.start();
+			try {
+				shutdownThread.join(5000); // Wait up to 5 seconds for the message to send
+			} catch (InterruptedException ignored) {}
+			// If the thread is still running after 5 seconds, it will be abandoned
+		}
 	}
 }
