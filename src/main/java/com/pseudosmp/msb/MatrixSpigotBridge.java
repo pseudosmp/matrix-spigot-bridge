@@ -6,6 +6,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.logging.Level;
+import java.util.function.Consumer;
 
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
@@ -41,7 +42,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 		return matrix;
 	}
 
-	public void startBridgeAsync(CommandSender sender) {
+	public void startBridgeAsync(CommandSender sender, Consumer<Boolean> callback) {
 		logger.info("Connecting to Matrix server");
 
 		// Cancel previous poller if running
@@ -75,12 +76,15 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 
 			//  Check if we already have an access token
 			String token = tokenConfiguration.getString("token");
+			boolean loginSuccess = false;
 			if (token != null && !token.isEmpty()) {
 				logger.info("Access token found in access.yml");
 				matrix.setAccessToken(token);
+				loginSuccess = true;
 			} else {
 				logger.info("No access token found, trying to login...");
-				if (matrix.login(getConfig().getString("matrix.password"))) {
+				loginSuccess = matrix.login(getConfig().getString("matrix.password"));
+				if (loginSuccess) {
 					tokenConfiguration.set("token", matrix.getAccessToken());
 					try {
 						tokenConfiguration.save(tokenFile);
@@ -91,45 +95,52 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 				}
 			}
 
-			// Check all configuration are ok
-			if (
-				!getConfig().contains("matrix.room_id") || !getConfig().contains("matrix.user_id")
-				|| getConfig().getString("matrix.room_id").isEmpty() || getConfig().getString("matrix.user_id").isEmpty()
-			) {
-				logger.log(Level.SEVERE, "Invalid configuration! (checking upper errors might help you)");
-				if (sender != null) {
-					Bukkit.getScheduler().runTask(this, () ->
-						sender.sendMessage("§e[MatrixSpigotBridge] §cInvalid configuration! (checking upper errors might help you)")
-					);
-				}
-				return;
+			boolean configValid = getConfig().contains("matrix.room_id") && getConfig().contains("matrix.user_id")
+					&& !getConfig().getString("matrix.room_id").isEmpty() && !getConfig().getString("matrix.user_id").isEmpty();
+
+			boolean connected = false;
+			if (loginSuccess && configValid && matrix.joinRoom(getConfig().getString("matrix.room_id")) && matrix.isValid()) {
+				connected = true;
 			}
 
-			if (!matrix.joinRoom(getConfig().getString("matrix.room_id")) || !matrix.isValid()) {
-				logger.log(Level.SEVERE, "Could not connect to server! Please check your configuration and run /msb restart!");
-				if (sender != null) {
-					Bukkit.getScheduler().runTask(this, () ->
-						sender.sendMessage("§e[MatrixSpigotBridge] §cCould not connect to server! Please check your configuration and run /msb restart!")
-					);
+			if (connected) {
+				logger.info("Connected to Matrix server as " + getConfig().getString("matrix.user_id") + " in room " + getConfig().getString("matrix.room_id"));
+				// Start poller on main thread
+				Bukkit.getScheduler().runTask(this, () -> {
+					matrixPollerTask = matrixPoller.runTaskTimerAsynchronously(this, 0, getConfig().getInt("matrix.poll_delay") * 20);
+				});
+			} else {
+				if (!configValid) {
+					logger.log(Level.SEVERE, "Invalid configuration! (checking upper errors might help you)");
+					if (sender != null) {
+						Bukkit.getScheduler().runTask(this, () ->
+							sender.sendMessage("§e[MatrixSpigotBridge] §cInvalid configuration! (checking upper errors might help you)")
+						);
+					}
+				} else {
+					logger.log(Level.SEVERE, "Could not connect to server! Please check your configuration and run /msb restart!");
+					if (sender != null) {
+						Bukkit.getScheduler().runTask(this, () ->
+							sender.sendMessage("§e[MatrixSpigotBridge] §cCould not connect to server! Please check your configuration and run /msb restart!")
+						);
+					}
 				}
-				return;
 			}
 
-			logger.info("Connected to Matrix server as " + getConfig().getString("matrix.user_id") + " in room " + getConfig().getString("matrix.room_id"));
+			// Notify callback on main thread
+			if (callback != null) {
+				boolean finalConnected = connected;
+				Bukkit.getScheduler().runTask(this, () -> callback.accept(finalConnected));
+			}
 
-			// Start poller on main thread
-			Bukkit.getScheduler().runTask(this, () -> {
-				matrixPollerTask = matrixPoller.runTaskTimerAsynchronously(this, 0, getConfig().getInt("matrix.poll_delay") * 20);
-			});
-
-			if (sender != null) {
+			// Optionally, send success message to sender
+			if (connected && sender != null) {
 				Bukkit.getScheduler().runTask(this, () ->
 					sender.sendMessage("§e[MatrixSpigotBridge] §aMatrix bridge connected!")
 				);
 			}
 		});
 	}
-
 	@Override
 	public void onEnable() {
 		boolean isFirstRun = false;
@@ -209,19 +220,19 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 		
 		// Connect to Matrix Server
 		if (!isFirstRun) {
-			startBridgeAsync(null);
+			startBridgeAsync(null, success -> {
+				if (success) {
+					String start_message = getConfig().getString("format.server.start");
+					if (start_message != null && !start_message.isEmpty())
+						sendMessageToMatrix(start_message, "", null);
+				}
+			});
 		}
 		// Register event handlers
 		getServer().getPluginManager().registerEvents(new MinecraftChatListener(this), this);
 		getServer().getPluginManager().registerEvents(new PlayerEventsListener(this), this);
 
-		logger.info("Started!");
-
-		if (matrix != null && matrix.isValid()) {
-			String start_message = getConfig().getString("format.server.start");
-			if (start_message != null && !start_message.isEmpty())
-				sendMessageToMatrix(start_message, "", null);
-		}
+		logger.info("Startup sequence complete!");
 	}
 
 	public void sendMessageToMatrix(String format, String message, Player player) {

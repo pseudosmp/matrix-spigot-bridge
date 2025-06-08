@@ -10,3 +10,13 @@ commands:
     description: Main command for MatrixSpigotBridge
     usage: /msb [ping | reload | restart]
     aliases: [matrixspigotbridge, msb, matrix]
+permissions:
+  msb.command.ping:
+    description: Allows the player to check if the server is able to connect to the Matrix Homeserver
+    default: false
+  msb.command.reload:
+    description: Allows the player to reload the plugin configuration
+    default: false
+  msb.command.restart:
+    description: Allows the player to reconnect to the Matrix Homeserver
+    default: false

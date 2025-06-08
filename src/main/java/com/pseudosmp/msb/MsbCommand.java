@@ -37,13 +37,14 @@ public class MsbCommand implements CommandExecutor, TabCompleter {
         if (args.length == 1) {
             List<String> completions = new ArrayList<>();
             for (String sub : subcommands.keySet()) {
-                if (sub.startsWith(args[0].toLowerCase())) {
+                // Only show subcommands the sender has permission for
+                String perm = "msb.command." + sub;
+                if (sub.startsWith(args[0].toLowerCase()) && sender.hasPermission(perm)) {
                     completions.add(sub);
                 }
             }
             return completions;
         }
-        // Optionally, delegate to subcommand tab completers here
         return Collections.emptyList();
     }
 }
