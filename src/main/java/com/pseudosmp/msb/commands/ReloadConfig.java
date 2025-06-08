@@ -16,14 +16,14 @@ public class ReloadConfig implements CommandExecutor {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (!sender.hasPermission("matrixspigotbridge.reload")) {
-            sender.sendMessage("§cYou do not have permission to use this command.");
+            sender.sendMessage("§e[MatrixSpigotBridge] §cYou do not have permission to use this command.");
             return true;
         }
         plugin.reloadConfig();
         plugin.cacheMatrixDisplaynames = plugin.getConfig().getBoolean("common.cacheMatrixDisplaynames");
         plugin.canUsePapi = plugin.getConfig().getBoolean("common.usePlaceholderApi")
                 && plugin.getServer().getPluginManager().getPlugin("PlaceholderAPI") != null;
-        sender.sendMessage("§aMatrixSpigotBridge configuration reloaded.");
+        sender.sendMessage("§e[MatrixSpigotBridge] §aConfiguration reloaded.");
         return true;
     }
 }

@@ -16,7 +16,7 @@ public class RestartBridge implements CommandExecutor {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (!sender.hasPermission("matrixspigotbridge.restart")) {
-            sender.sendMessage("§cYou do not have permission to use this command.");
+            sender.sendMessage("§e[MatrixSpigotBridge] §cYou do not have permission to use this command.");
             return true;
         }
 
@@ -24,7 +24,7 @@ public class RestartBridge implements CommandExecutor {
         // (Assume Matrix class has a disconnect/close method, otherwise skip)
         // plugin.getMatrix().disconnect();
 
-        sender.sendMessage("§eRestarting Matrix bridge...");
+        sender.sendMessage("§e[MatrixSpigotBridge] §aRestarting Matrix bridge...");
 
         // Reconnect logic (mirrors onEnable, but does not reload config)
         try {
@@ -34,13 +34,13 @@ public class RestartBridge implements CommandExecutor {
                     && plugin.getServer().getPluginManager().getPlugin("PlaceholderAPI") != null;
             plugin.startBridgeAsync(sender);
         } catch (Exception e) {
-            sender.sendMessage("§cFailed to restart Matrix bridge: " + e.getMessage());
+            sender.sendMessage("§e[MatrixSpigotBridge] §cFailed to restart Matrix bridge: " + e.getMessage());
             plugin.getLogger().log(java.util.logging.Level.SEVERE, "Failed to restart Matrix bridge", e);
         }
 
         if (plugin.getMatrix() != null && plugin.getMatrix().isValid()) {
-            sender.sendMessage("§eMatrix bridge restarted successfully.");
-        } 
+            sender.sendMessage("§e[MatrixSpigotBridge] §aMatrix bridge restarted successfully.");
+        }
         return true;
     }
 }

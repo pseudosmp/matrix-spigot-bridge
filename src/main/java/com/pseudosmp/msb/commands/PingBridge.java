@@ -16,10 +16,10 @@ public class PingBridge implements CommandExecutor {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (!sender.hasPermission("matrixspigotbridge.ping")) {
-            sender.sendMessage("§cYou do not have permission to use this command.");
+            sender.sendMessage("§e[MatrixSpigotBridge] §cYou do not have permission to use this command.");
             return true;
         }
-        sender.sendMessage(plugin.getMatrix().ping());
+        sender.sendMessage("§e[MatrixSpigotBridge] " + plugin.getMatrix().ping());
         return true;
     }
 }

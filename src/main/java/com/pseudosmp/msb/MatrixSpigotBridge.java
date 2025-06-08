@@ -99,7 +99,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 				logger.log(Level.SEVERE, "Invalid configuration! (checking upper errors might help you)");
 				if (sender != null) {
 					Bukkit.getScheduler().runTask(this, () ->
-						sender.sendMessage("§cInvalid configuration! (checking upper errors might help you)")
+						sender.sendMessage("§e[MatrixSpigotBridge] §cInvalid configuration! (checking upper errors might help you)")
 					);
 				}
 				return;
@@ -109,7 +109,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 				logger.log(Level.SEVERE, "Could not connect to server! Please check your configuration and run /msb restart!");
 				if (sender != null) {
 					Bukkit.getScheduler().runTask(this, () ->
-						sender.sendMessage("§cCould not connect to server! Please check your configuration and run /msb restart!")
+						sender.sendMessage("§e[MatrixSpigotBridge] §cCould not connect to server! Please check your configuration and run /msb restart!")
 					);
 				}
 				return;
@@ -124,7 +124,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 
 			if (sender != null) {
 				Bukkit.getScheduler().runTask(this, () ->
-					sender.sendMessage("§aMatrix bridge connected!")
+					sender.sendMessage("§e[MatrixSpigotBridge] §aMatrix bridge connected!")
 				);
 			}
 		});

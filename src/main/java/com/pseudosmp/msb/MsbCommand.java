@@ -20,7 +20,7 @@ public class MsbCommand implements CommandExecutor, TabCompleter {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length == 0) {
-            sender.sendMessage("§eUsage: /msb <subcommand>");
+            sender.sendMessage("§eUsage: /msb [ping|reload|restart]");
             return true;
         }
         CommandExecutor sub = subcommands.get(args[0].toLowerCase());
