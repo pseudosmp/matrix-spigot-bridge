@@ -1,4 +1,4 @@
-package com.pseudosmp.msb;
+package com.pseudosmp.tools.game;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;

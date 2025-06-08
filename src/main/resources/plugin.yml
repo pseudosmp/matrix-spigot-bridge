@@ -5,3 +5,8 @@ version: ${project.version}
 description: ${project.description}
 api-version: 1.13
 softdepend: [PlaceholderAPI]
+commands:
+  msb:
+    description: Main command for MatrixSpigotBridge
+    usage: /msb [ping | reload | restart]
+    aliases: [matrixspigotbridge, msb, matrix]

@@ -1,4 +1,4 @@
-package com.pseudosmp.tools;
+package com.pseudosmp.tools.bridge;
 
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
