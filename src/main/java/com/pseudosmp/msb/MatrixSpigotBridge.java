@@ -40,7 +40,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 
 	public boolean startBridge() {
 		logger.info("Connecting to Matrix server");
-		if (matrixPollerTask != null) {
+		if (matrixPollerTask.getTaskId() != -1) {
 			matrixPollerTask.cancel();
 		}
 
@@ -222,7 +222,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 	@Override
 	public void onDisable() {
 		String stop_message = getConfig().getString("format.server.stop");
-		if (stop_message != null && !stop_message.isEmpty())
+		if (stop_message != null && !stop_message.isEmpty() && matrix != null && matrix.isValid())
 			sendMessageToMatrix(stop_message, "", null);
 	}
 }
