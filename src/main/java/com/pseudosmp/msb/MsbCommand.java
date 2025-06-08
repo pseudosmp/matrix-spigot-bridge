@@ -20,6 +20,7 @@ public class MsbCommand implements CommandExecutor, TabCompleter {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length == 0) {
+            // TODO: Show usage from plugin.yml
             sender.sendMessage("§eUsage: /msb [ping|reload|restart]");
             return true;
         }
