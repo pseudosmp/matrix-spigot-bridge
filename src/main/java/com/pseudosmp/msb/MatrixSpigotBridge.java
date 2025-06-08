@@ -31,7 +31,6 @@ import com.pseudosmp.tools.game.PlayerEventsListener;
 
 public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 	private java.util.logging.Logger logger;
-	protected BukkitRunnable matrixPoller;
 	public BukkitTask matrixPollerTask = null;
 	public Matrix matrix;
 
@@ -52,6 +51,44 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 			} catch (IllegalStateException ignored) {}
 			matrixPollerTask = null;
 		}
+
+		BukkitRunnable poller = new BukkitRunnable(){
+			protected String matrix_message_prefix = getConfig().getString("format.matrix_chat");
+			protected String matrix_command_prefix = getConfig().getString("matrix.command_prefix", "!");
+
+			public void run() {
+				JSONArray messages = new JSONArray();
+
+				try {
+					messages = matrix.getLastMessages();
+				} catch (Exception e) {
+					// Matrix server gone away, do nothing
+				}
+
+				try {
+					if (!messages.isEmpty()) {
+						messages.forEach(o -> {
+							JSONObject obj = (JSONObject) o;
+
+							String sender_address = matrix.getDisplayName(obj.getString("sender"), !cacheMatrixDisplaynames);
+							String body = obj.getJSONObject("content").getString("body");
+
+							if (body.startsWith(matrix_command_prefix)) {
+								String command = body.substring(matrix_command_prefix.length()).trim();
+								matrix.handleCommand(command, sender_address);
+							} else sendMessageToMinecraft(
+								matrix_message_prefix,
+								obj.getJSONObject("content").getString("body"),
+								null,
+								sender_address
+							);
+						});
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		};
 
 		Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
 			HttpsTrustAll.ignoreAllSSL();
@@ -107,7 +144,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 				logger.info("Connected to Matrix server as " + getConfig().getString("matrix.user_id") + " in room " + getConfig().getString("matrix.room_id"));
 				// Start poller on main thread
 				Bukkit.getScheduler().runTask(this, () -> {
-					matrixPollerTask = matrixPoller.runTaskTimerAsynchronously(this, 0, getConfig().getInt("matrix.poll_delay") * 20);
+					matrixPollerTask = poller.runTaskTimerAsynchronously(this, 0, getConfig().getInt("matrix.poll_delay") * 20);
 				});
 			} else {
 				if (!configValid) {
@@ -179,44 +216,6 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 		MsbCommand msbCommand = new MsbCommand(this);
 		getCommand("msb").setExecutor(msbCommand);
 		getCommand("msb").setTabCompleter(msbCommand);
-
-		matrixPoller = new BukkitRunnable() {
-			protected String matrix_message_prefix = getConfig().getString("format.matrix_chat");
-			protected String matrix_command_prefix = getConfig().getString("matrix.command_prefix", "!");
-
-			public void run() {
-				JSONArray messages = new JSONArray();
-
-				try {
-					messages = matrix.getLastMessages();
-				} catch (Exception e) {
-					// Matrix server gone away, do nothing
-				}
-
-				try {
-					if (!messages.isEmpty()) {
-						messages.forEach(o -> {
-							JSONObject obj = (JSONObject) o;
-
-							String sender_address = matrix.getDisplayName(obj.getString("sender"), !cacheMatrixDisplaynames);
-							String body = obj.getJSONObject("content").getString("body");
-
-							if (body.startsWith(matrix_command_prefix)) {
-								String command = body.substring(matrix_command_prefix.length()).trim();
-								matrix.handleCommand(command, sender_address);
-							} else sendMessageToMinecraft(
-								matrix_message_prefix,
-								obj.getJSONObject("content").getString("body"),
-								null,
-								sender_address
-							);
-						});
-					}
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-		};
 		
 		// Connect to Matrix Server
 		if (!isFirstRun) {
@@ -236,6 +235,10 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 	}
 
 	public void sendMessageToMatrix(String format, String message, Player player) {
+		if (matrix == null || !matrix.isValid()) {
+			// Ignoring for now, not connected to matrix server yet
+			return;
+		}
 		if (canUsePapi)
 			format = PlaceholderAPI.setPlaceholders(player, format);
 
