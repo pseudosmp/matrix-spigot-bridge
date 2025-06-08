@@ -8,7 +8,6 @@ import org.bukkit.command.CommandSender;
 
 public class RestartBridge implements CommandExecutor {
     private final MatrixSpigotBridge plugin;
-    private boolean bridgeStarted = false;
 
     public RestartBridge(MatrixSpigotBridge plugin) {
         this.plugin = plugin;

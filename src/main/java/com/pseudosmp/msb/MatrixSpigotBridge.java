@@ -133,7 +133,6 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 	@Override
 	public void onEnable() {
 		boolean isFirstRun = false;
-		boolean bridgeStarted = false;
 		logger = getLogger();
 
 		logger.info("Starting MatrixSpigotBridge");
