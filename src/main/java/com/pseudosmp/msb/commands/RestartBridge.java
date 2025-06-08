@@ -22,7 +22,6 @@ public class RestartBridge implements CommandExecutor {
 
         sender.sendMessage("§e[MatrixSpigotBridge] §aRestarting Matrix bridge...");
 
-
         plugin.reloadConfig();
         plugin.cacheMatrixDisplaynames = plugin.getConfig().getBoolean("common.cacheMatrixDisplaynames");
         plugin.canUsePapi = plugin.getConfig().getBoolean("common.usePlaceholderApi")

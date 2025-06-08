@@ -8,7 +8,8 @@ matrix:
     server: 'https://example.com:8448'
     
 # Matrix room used to communicate with players
-# Note: Do not use room alias (#roomname:example.com)
+# Note: Do not use room alias (#roomname:example.com),
+#   use internal room ID.
     room_id: '!fdsgfdKJHGKujys:example.com'
 
 # Automatic account used to post and read messages in the room
@@ -36,10 +37,10 @@ format:
 # {PLAYERNAME} is the displayed player name, {MESSAGE} is the default event message
 # For chat, {MESSAGE} is the message sent by user
     player:
-        join: '+ {MESSAGE}'
-        quit: '- {MESSAGE}'
-        death: 'X {MESSAGE}'
-        chat: '> {PLAYERNAME}: {MESSAGE}'
+        join: '➕ {MESSAGE}'
+        quit: '➖ {MESSAGE}'
+        death: '🪦 {MESSAGE}'
+        chat: '<{PLAYERNAME}> {MESSAGE}'
         
 # Message sent from matrix room
 # {MATRIXNAME} is the matrix user name, {MESSAGE} is the message sent
@@ -47,8 +48,8 @@ format:
     
 # Server events (start stop)
     server:
-        start: 'Server start'
-        stop: 'Server stop'
+        start: '🟢 Server online!'
+        stop: '🔴 Server closed.'
 
 common:
 # Set this value to false if you want the plugin to always fetch displaynames from matrix server
