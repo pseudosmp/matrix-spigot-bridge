@@ -1,4 +1,4 @@
-package com.pseudosmp.tools;
+package com.pseudosmp.tools.bridge;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -83,6 +83,17 @@ public class Matrix {
 
 		return true;
 	}
+    
+	public String ping() {
+		long start = System.currentTimeMillis();
+		try {
+			get("/_matrix/client/versions");
+		} catch (Exception e) {
+			return "Ping failed: " + e.getMessage();
+		}
+		long delay = System.currentTimeMillis() - start;
+		return "Pong! Took " + delay + "ms";
+	}
 
 	public boolean sendMessage(String message) {
 		if (room_id.equals("") || access_token.equals(""))
@@ -164,6 +175,7 @@ public class Matrix {
 			return false;
 		}
 	}
+
 	public void handleCommand(String command, String sender_address) {
 		if (command == null || command.trim().isEmpty()) return;
 
@@ -172,19 +184,11 @@ public class Matrix {
 
 		switch (cmd) {
 			case "ping":
-				long start = System.currentTimeMillis();
-				try {
-					get("/_matrix/client/versions");
-				} catch (Exception e) {
-					sendMessage("Ping failed: " + e.getMessage());
-					return;
-				}
-				long delay = System.currentTimeMillis() - start;
-				sendMessage("Pong! Took " + delay + "ms");
+				sendMessage(ping());
 				break;
 			case "list":
 				try {
-					com.pseudosmp.msb.ServerInfo.PlayerStatus status = com.pseudosmp.msb.ServerInfo.getPlayerList();
+					com.pseudosmp.tools.game.ServerInfo.PlayerStatus status = com.pseudosmp.tools.game.ServerInfo.getPlayerList();
 					StringBuilder names = new StringBuilder();
 					for (String name : status.getNames()) {
 						if (names.length() > 0) names.append(", ");
@@ -199,7 +203,7 @@ public class Matrix {
 				break;
 			case "tps":
 				try {
-					double tps = com.pseudosmp.msb.ServerInfo.getTps();
+					double tps = com.pseudosmp.tools.game.ServerInfo.getTps();
 					sendMessage("Current server TPS: " + String.format("%.2f", tps));
 				} catch (Exception e) {
 					sendMessage("Could not fetch server TPS.");

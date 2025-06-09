@@ -5,3 +5,18 @@ version: ${project.version}
 description: ${project.description}
 api-version: 1.13
 softdepend: [PlaceholderAPI]
+commands:
+  msb:
+    description: Main command for MatrixSpigotBridge
+    usage: /msb [ping | reload | restart]
+    aliases: [matrixspigotbridge, msb, matrix]
+permissions:
+  msb.command.ping:
+    description: Allows the player to check if the server is able to connect to the Matrix Homeserver
+    default: op
+  msb.command.reload:
+    description: Allows the player to reload the plugin configuration
+    default: op
+  msb.command.restart:
+    description: Allows the player to reconnect to the Matrix Homeserver
+    default: op
