@@ -328,7 +328,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 	@Override
 	public void onDisable() {
 		String stop_message = getConfig().getString("format.server.stop");
-		if (stop_message != null && !stop_message.isEmpty() && matrix != null && matrix.isValid()) {
+		if (stop_message != null && !stop_message.isEmpty() && matrix != null) {
 			Thread shutdownThread = new Thread(() -> {
 				try {
 					sendMessageToMatrix(stop_message, "", null);
@@ -337,10 +337,11 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 			shutdownThread.start();
 			try {
 				shutdownThread.join(5000); // Wait up to 5 seconds for the message to send
-			} catch (InterruptedException ignored) {
-				return; // If the thread is still running after 5 seconds, it will be abandoned
-			}
-			
+				if (shutdownThread.isAlive()) {
+					logger.warning("Shutdown message did not send in time, forcefully disabling (ignore the following error)...");
+					shutdownThread.interrupt();
+				}
+			} catch (InterruptedException ignored) {}
 		}
 	}
 }
