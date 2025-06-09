@@ -27,6 +27,12 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
+            <groupId>pl.mikigal</groupId>
+            <artifactId>ConfigAPI</artifactId>
+            <version>1.2.6</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
             <groupId>org.bstats</groupId>
             <artifactId>bstats-bukkit</artifactId>
             <version>3.0.2</version>
@@ -48,15 +54,20 @@
             <id>placeholderapi</id>
             <url>https://repo.extendedclip.com/content/repositories/placeholderapi/</url>
         </repository>
+        <repository>
+            <id>mikigal-repo</id>
+            <url>https://repo.mikigal.pl/releases</url>
+        </repository>
     </repositories>
 
     <organization>
-        <name>The Pseudo Force</name>
-        <url>https://github.com/pseudoforceyt</url>
+        <name>The Pseudo Force SMP</name>
+        <url>https://github.com/pseudosmp</url>
     </organization>
 
     <build>
-       <resources>
+        <finalName>MatrixSpigotBridge</finalName>
+        <resources>
             <resource>
                 <directory>src/main/resources</directory>
                 <filtering>true</filtering>
@@ -72,9 +83,6 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
                 <version>3.4.2</version>
-                <configuration>
-                    <finalName>MatrixSpigotBridge</finalName>
-                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
