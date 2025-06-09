@@ -20,8 +20,7 @@ public class MsbCommand implements CommandExecutor, TabCompleter {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length == 0) {
-            // TODO: Show usage from plugin.yml
-            sender.sendMessage("§eUsage: /msb [ping|reload|restart]");
+            sender.sendMessage(command.getUsage());
             return true;
         }
         CommandExecutor sub = subcommands.get(args[0].toLowerCase());
@@ -29,7 +28,7 @@ public class MsbCommand implements CommandExecutor, TabCompleter {
             // Pass subcommand arguments (excluding the subcommand itself)
             return sub.onCommand(sender, command, label, Arrays.copyOfRange(args, 1, args.length));
         }
-        sender.sendMessage("§cUnknown subcommand. Use /msb for help.");
+        sender.sendMessage(command.getUsage());
         return true;
     }
 

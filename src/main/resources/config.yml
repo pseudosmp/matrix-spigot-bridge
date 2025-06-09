@@ -1,70 +1,72 @@
-### MatrixSpigotBridge by PseudoPanda https://github.com/pseudosmp/matrix-spigot-bridge ###
-### Forked from Lautriva https://github.com/lautriva/matrix-spigot-bridge ###
-# Note: if you want to use symbols / emojis, please save this file as UTF-8
+### MatrixSpigotBridge by PseudoPanda https://github.com/pseudosmp/matrix-spigot-bridge
+### Forked from Lautriva https://github.com/lautriva/matrix-spigot-bridge
+# Note: If this ->❤️<- doesnt look like a red heart, please use a UTF-8 capable editor to edit this file.
+# If you are using an incompatible editor, you may not be able to use symbols/emojis in the config.
 
 # Matrix server / bot account configuration
 matrix:
-# Matrix homeserver base url
+    # Matrix homeserver base url
     server: 'https://example.com:8448'
     
-# Matrix room used to communicate with players
-# Note: Do not use room alias (#roomname:example.com),
-#   use internal room ID.
+    # Matrix room used to communicate with players
+    # Note: Do not use room alias (#roomname:example.com), use internal room ID.
     room_id: '!fdsgfdKJHGKujys:example.com'
 
-# Automatic account used to post and read messages in the room
-# Once access token have been generated after first start in access.yml,
-#   you can safely set the password here to '' value if you don't want password stored in clear
+    # Automatic account used to post and read messages in the room
+    # Once access token has been generated after first login in access.yml,
+    # you can safely set the password here to '' if you don't want the password stored in cleartext
     user_id: '@mcbot:example.com'
     password: 'y0urPa55w0rd'
 
-# Seconds to wait between polls to get messages from matrix server
+    # Seconds to wait between polls to get messages from matrix server.
+    # Lower values will result in faster message delivery, but will increase server load.
     poll_delay: 2
 
-# Prefix for commands in the matrix chat
-# Currently available commands: !ping, !list, !tps
-# Note: You can change this prefix to anything sensible (like a non-alphanumeric),
-#   but it must be a single character
+    # Prefix for commands in the matrix chat
+    # Currently available commands: !ping, !list, !tps
+    # Some examples: '!', '.', '/mc ', '!matrix '
     command_prefix: '!'
 
 # Message formats
-# You can have many more placeholders than those provided
-#   if you use PlaceholderAPI and have set common.usePlaceholderApi to true
-#
+# PlaceholderAPI is supported! Set usePlaceholderApi to true in the common section to use
+# PlaceholderAPI placeholders in the messages. Usage: %papi_placeholder%
 # An empty value won't send messages for the related event
 format:
-# Players related events (join, quit, chat, death)
-# {PLAYERNAME} is the displayed player name, {MESSAGE} is the default event message
-# For chat, {MESSAGE} is the message sent by user
+    # Player-related events (join, quit, chat, death)
+    # {PLAYERNAME} is the displayed player name, {MESSAGE} is the default event message
+    # For chat, {MESSAGE} is the message sent by user
+    # Minecraft -> Matrix Chat
     player:
         join: '➕ {MESSAGE}'
         quit: '➖ {MESSAGE}'
         death: '🪦 {MESSAGE}'
         chat: '<{PLAYERNAME}> {MESSAGE}'
         
-# Message sent from matrix room
-# {MATRIXNAME} is the matrix user name, {MESSAGE} is the message sent
+    # Messages sent in matrix room
+    # {MATRIXNAME} is the matrix user name, {MESSAGE} is the message sent
+    # Matrix -> Minecraft Chat
     matrix_chat: '[Matrix] {MATRIXNAME}: {MESSAGE}'
     
-# Server events (start stop)
+    # Server events (start, stop)
+    # Minecraft -> Matrix Chat
     server:
         start: '🟢 Server online!'
         stop: '🔴 Server closed.'
 
 common:
-# Set this value to false if you want the plugin to always fetch displaynames from matrix server
-# True will let the server remember fetched diplaynames until Spigot restart
+    # Set this value to false if you want the plugin to always fetch displaynames from matrix server.
+    # Setting to true will let the server remember fetched diplaynames until the server restarts.
+    # This will reduce the number of requests to the matrix server, but may cause issues if displaynames change often
     cacheMatrixDisplaynames: true
 
-# If you like placeholders, we do too! 
-# Set this value to true to use placeholders in all formats messages 
-# requires PlaceholderApi if set to true!
+    # Set this value to true to use placeholders in all formats messages 
+    # IMPORTANT: Requires PlaceholderAPI to be installed if set to true!
     usePlaceholderApi: false
 
-# By default, this plugin uses bstats for collecting anonymous data on
-# how many servers this plugin is running on and how many players are playing.
-# Set this to false to opt out and disable bstats for this plugin
+    # By default, this plugin uses bstats for collecting anonymous data on
+    # how many servers this plugin is running on and how many players are playing.
+    # Set this to false to opt out and disable bstats for this plugin
     bstats_consent: true
 
-# Do not touch this!
+    # Do not touch this!
     configVersion: 2.0.0

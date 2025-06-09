@@ -2,9 +2,6 @@ package com.pseudosmp.msb;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.util.logging.Level;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -25,7 +22,6 @@ import org.json.JSONObject;
 
 import me.clip.placeholderapi.PlaceholderAPI;
 
-import com.pseudosmp.msb.MsbCommand;
 import com.pseudosmp.tools.bridge.HttpsTrustAll;
 import com.pseudosmp.tools.bridge.Matrix;
 import com.pseudosmp.tools.game.MinecraftChatListener;
@@ -217,6 +213,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 
 		if (getConfig().getBoolean("common.bstats_consent", true)) {
 			int pluginId = 25993;
+			@SuppressWarnings("unused")
 			Metrics metrics = new Metrics(this, pluginId);
 			getLogger().info("bstats for MatrixSpigotBridge has been enabled. You can opt-out by disabling bstats in the plugin config.");
 		}
