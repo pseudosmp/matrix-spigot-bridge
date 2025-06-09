@@ -19,7 +19,7 @@ public class PingBridge implements CommandExecutor {
             sender.sendMessage("§e[MatrixSpigotBridge] §cYou do not have permission to use this command.");
             return true;
         }
-        sender.sendMessage("§e[MatrixSpigotBridge] " + plugin.getMatrix().ping());
+        sender.sendMessage("§e[MatrixSpigotBridge] §7" + plugin.getMatrix().ping());
         return true;
     }
 }

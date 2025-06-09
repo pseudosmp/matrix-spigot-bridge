@@ -45,7 +45,7 @@ public class RestartBridge implements CommandExecutor {
         // If not confirming, prompt for confirmation
         pendingConfirmations.put(senderKey, System.currentTimeMillis());
         sender.sendMessage("§e[MatrixSpigotBridge] §cAre you sure you want to restart the Matrix bridge?");
-        sender.sendMessage("§eThis is an unsupported operation and may cause repetition of messages received until the previous restart.");
+        sender.sendMessage("§eThis is an unsupported operation and may cause repetition of messages received until the previous bridge restart.");
         sender.sendMessage("§e[MatrixSpigotBridge] §7Type §a/msb restart confirm §7within 60 seconds to confirm.");
         return true;
     }
