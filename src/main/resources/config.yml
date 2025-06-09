@@ -51,7 +51,7 @@ format:
     # Minecraft -> Matrix Chat
     server:
         start: '🟢 Server online!'
-        stop: '🔴 Server closed.'
+        stop: '🛑 Server closed.'
 
 common:
     # Set this value to false if you want the plugin to always fetch displaynames from matrix server.
@@ -69,4 +69,4 @@ common:
     bstats_consent: true
 
     # Do not touch this!
-    configVersion: 2.0.0
+    configVersion: 2.1.0

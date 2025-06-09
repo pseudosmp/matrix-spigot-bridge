@@ -26,6 +26,7 @@ import com.pseudosmp.tools.bridge.HttpsTrustAll;
 import com.pseudosmp.tools.bridge.Matrix;
 import com.pseudosmp.tools.game.MinecraftChatListener;
 import com.pseudosmp.tools.game.PlayerEventsListener;
+import com.pseudosmp.tools.game.ConfigUpdater;
 
 public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 	private java.util.logging.Logger logger;
@@ -199,6 +200,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 		File configFile = new File(getDataFolder(), "config.yml");
 		boolean newConfig = !configFile.exists();
 		this.saveDefaultConfig();
+
 		if (newConfig) {
 			isFirstRun = true;
 			String firstRun = "Config generated for the first time! Please edit config.yml and run /msb restart to start the bridge.";
@@ -207,6 +209,15 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 			Bukkit.getOnlinePlayers().stream()
 				.filter(Player::isOp)
 				.forEach(p -> p.sendMessage("§e[MatrixSpigotBridge] " + firstRun));
+		} else {
+			if (ConfigUpdater.isOlderConfigVersion(this)) {
+				getLogger().warning("Your config.yml is outdated! Updating to the latest version...");
+				if (!ConfigUpdater.updateConfig(this)) {
+					getLogger().severe("Failed to update config.yml! Please regenerate the config manually and restart the server.");
+					Bukkit.getPluginManager().disablePlugin(this);
+					return;
+				}
+			}
 		}
 
 		reloadConfig();
