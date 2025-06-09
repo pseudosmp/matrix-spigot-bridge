@@ -6,6 +6,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.logging.Level;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 import org.bukkit.Bukkit;
@@ -31,11 +33,15 @@ import com.pseudosmp.tools.game.PlayerEventsListener;
 
 public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 	private java.util.logging.Logger logger;
+	private final Set<String> relayedEventIDs = ConcurrentHashMap.newKeySet();
+	private static final int MAX_RELAYED_EVENTS = 120; // Limit memory usage
 	public BukkitTask matrixPollerTask = null;
 	public Matrix matrix;
 
 	public boolean canUsePapi = false;
 	public boolean cacheMatrixDisplaynames = false;
+	public String matrixMessagePrefix = "";
+	public String matrixCommandPrefix = "!";
 
 	public Matrix getMatrix() {
 		return matrix;
@@ -51,11 +57,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 			} catch (IllegalStateException ignored) {}
 			matrixPollerTask = null;
 		}
-
 		BukkitRunnable poller = new BukkitRunnable(){
-			protected String matrix_message_prefix = getConfig().getString("format.matrix_chat");
-			protected String matrix_command_prefix = getConfig().getString("matrix.command_prefix", "!");
-
 			public void run() {
 				JSONArray messages = new JSONArray();
 
@@ -69,15 +71,28 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 					if (!messages.isEmpty()) {
 						messages.forEach(o -> {
 							JSONObject obj = (JSONObject) o;
+							String event_id = obj.optString("event_id", null);
+							if (event_id != null && relayedEventIDs.contains(event_id)) {
+								// Already processed this event, skip it
+								return;
+							}
+							if (event_id != null) {
+								// Add event ID to the set
+								relayedEventIDs.add(event_id);
+								// Limit memory usage by removing old events
+								if (relayedEventIDs.size() > MAX_RELAYED_EVENTS) {
+									relayedEventIDs.remove(relayedEventIDs.iterator().next());
+								}
+							}
 
 							String sender_address = matrix.getDisplayName(obj.getString("sender"), !cacheMatrixDisplaynames);
 							String body = obj.getJSONObject("content").getString("body");
 
-							if (body.startsWith(matrix_command_prefix)) {
-								String command = body.substring(matrix_command_prefix.length()).trim();
+							if (body.startsWith(matrixCommandPrefix)) {
+								String command = body.substring(matrixCommandPrefix.length()).trim();
 								matrix.handleCommand(command, sender_address);
 							} else sendMessageToMinecraft(
-								matrix_message_prefix,
+								matrixMessagePrefix,
 								obj.getJSONObject("content").getString("body"),
 								null,
 								sender_address
@@ -213,6 +228,9 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 			logger.info("PlaceholderAPI found and bound, you can use placeholders in messages");
 		}
 
+		matrixMessagePrefix = getConfig().getString("format.matrix_chat");
+		matrixCommandPrefix = getConfig().getString("matrix.command_prefix", "!");
+		
 		MsbCommand msbCommand = new MsbCommand(this);
 		getCommand("msb").setExecutor(msbCommand);
 		getCommand("msb").setTabCompleter(msbCommand);
