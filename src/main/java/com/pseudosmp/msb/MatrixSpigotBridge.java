@@ -2,6 +2,8 @@ package com.pseudosmp.msb;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.logging.Level;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -42,6 +44,27 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 	public Matrix getMatrix() {
 		return matrix;
 	}
+
+	private boolean isOlderConfigVersion() {
+        String configVersion = this.getConfig().getString("common.configVersion", "0.0.0");
+
+        // Get version of config stored in resources
+        InputStream inputStream = this.getResource("config.yml");
+        YamlConfiguration resourceConfig = YamlConfiguration.loadConfiguration(new InputStreamReader(inputStream));
+        String pluginVersion = resourceConfig.getString("common.configVersion", "0.0.0");
+
+        String[] curr = configVersion.split("\\.");
+        String[] target = pluginVersion.split("\\.");
+
+        int len = Math.max(curr.length, target.length);
+        for (int i = 0; i < len; i++) {
+            int currPart = i < curr.length ? Integer.parseInt(curr[i]) : 0;
+            int targetPart = i < target.length ? Integer.parseInt(target[i]) : 0;
+            if (currPart < targetPart) return true;
+            if (currPart > targetPart) return false;
+        }
+        return false; // equal
+    }
 
 	public void startBridgeAsync(CommandSender sender, Consumer<Boolean> callback) {
 		logger.info("Connecting to Matrix server");
@@ -207,6 +230,31 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 			Bukkit.getOnlinePlayers().stream()
 				.filter(Player::isOp)
 				.forEach(p -> p.sendMessage("§e[MatrixSpigotBridge] " + firstRun));
+		} else if (isOlderConfigVersion()) {
+			getLogger().warning("Your config.yml is outdated! Please update it to the latest version.");
+			// Copy resource config.yml to data folder as config.new.yml
+			try {
+				File newConfigFile = new File(getDataFolder(), "config.new.yml");
+				if (newConfigFile.exists()) {
+					newConfigFile.delete();
+				}
+				// Save the resource config.yml as config.new.yml
+				InputStream in = getResource("config.yml");
+				if (in != null) {
+					java.nio.file.Files.copy(
+						in,
+						newConfigFile.toPath(),
+						java.nio.file.StandardCopyOption.REPLACE_EXISTING
+					);
+					in.close();
+					getLogger().warning("You can find the latest config.yml in the plugin's folder as \"config.new.yml\".");
+				} else {
+					getLogger().warning("Resource config.yml not found in jar.");
+				}
+			} catch (Exception e) {
+				getLogger().warning("Failed to save config.new.yml: " + e.getMessage());
+				getLogger().warning("Manually update by checking https://github.com/pseudosmp/matrix-spigot-bridge/blob/master/src/main/resources/config.yml");
+			}
 		}
 
 		reloadConfig();
@@ -289,8 +337,10 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 			shutdownThread.start();
 			try {
 				shutdownThread.join(5000); // Wait up to 5 seconds for the message to send
-			} catch (InterruptedException ignored) {}
-			// If the thread is still running after 5 seconds, it will be abandoned
+			} catch (InterruptedException ignored) {
+				return; // If the thread is still running after 5 seconds, it will be abandoned
+			}
+			
 		}
 	}
 }
