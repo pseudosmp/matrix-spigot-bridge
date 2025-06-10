@@ -51,8 +51,8 @@
     </repositories>
 
     <organization>
-        <name>The Pseudo Force</name>
-        <url>https://github.com/pseudoforceyt</url>
+        <name>The Pseudo Force SMP</name>
+        <url>https://github.com/pseudosmp</url>
     </organization>
 
     <build>
