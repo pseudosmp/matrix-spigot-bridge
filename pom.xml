@@ -8,8 +8,8 @@
     <version>2.1.0</version>
     <packaging>jar</packaging>
 
-    <name>MatrixSpigotBridge</name>
-    <description>Bridge between Matrix and Spigot (Minecraft) server</description>
+    <name>MatrixSpigotBridge v2</name>
+    <description>Link a Minecraft server chat with a Matrix.org room - Forked from Lautriva</description>
     <url>https://github.com/pseudosmp/matrix-spigot-bridge</url>
     <inceptionYear>%year%</inceptionYear>
 
@@ -67,7 +67,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.11.0</version>
+                <version>3.14.0</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -77,7 +77,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>3.5.1</version>
+                <version>3.6.0</version>
                 <configuration>
                     <relocations>
                         <relocation>
