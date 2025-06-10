@@ -1,4 +1,4 @@
-name: ${project.name}
+name: MatrixSpigotBridge
 authors: [ Ilamparithi, David B ]
 main: com.pseudosmp.msb.MatrixSpigotBridge
 version: ${project.version}
