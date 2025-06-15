@@ -28,6 +28,3 @@ Support and Feature Requests in [SpigotMC Resource Discussion Tab](https://www.s
 Building:
 1. Clone the project (the version/branch of your choice)
 2. Build using `mvn install`
-
-[bStats - MatrixSpigotBridge](https://bstats.org/plugin/bukkit/MatrixSpigotBridge/25993)
-![image](https://bstats.org/signatures/bukkit/MatrixSpigotBridge.svg)
