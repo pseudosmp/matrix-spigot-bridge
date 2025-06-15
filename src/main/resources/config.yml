@@ -63,10 +63,5 @@ common:
     # IMPORTANT: Requires PlaceholderAPI to be installed if set to true!
     usePlaceholderApi: false
 
-    # By default, this plugin uses bstats for collecting anonymous data on
-    # how many servers this plugin is running on and how many players are playing.
-    # Set this to false to opt out and disable bstats for this plugin
-    bstats_consent: true
-
     # Do not touch this!
-    configVersion: 2.1.0
+    configVersion: 2.1.1

@@ -18,7 +18,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
-import org.bstats.bukkit.Metrics;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -258,13 +257,6 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 		}
 
 		reloadConfig();
-
-		if (getConfig().getBoolean("common.bstats_consent", true)) {
-			int pluginId = 25993;
-			@SuppressWarnings("unused")
-			Metrics metrics = new Metrics(this, pluginId);
-			getLogger().info("bstats for MatrixSpigotBridge has been enabled. You can opt-out by disabling bstats in the plugin config.");
-		}
 
 		cacheMatrixDisplaynames = getConfig().getBoolean("common.cacheMatrixDisplaynames");
 
