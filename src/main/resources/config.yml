@@ -35,7 +35,8 @@ matrix:
 # PlaceholderAPI placeholders in the messages. Usage: %papi_placeholder%
 # An empty value won't send messages for the related event
 # For formatting, Matrix-bound messages should use HTML tags
-# (e.g. <b>bold</b>, <i>italic</i>, <u>underline</u>, <s>strikethrough</s>), 
+# (e.g. <b>bold</b>, <i>italic</i>, <u>underline</u>, <s>strikethrough</s>
+# <blockquote>blockquote</blockquote>, <code>inline code</code>, <pre>codeblock</pre>), 
 # while Minecraft-bound messages should use Minecraft color codes (e.g. §a for green).
 format:
     # Player-related events (join, quit, chat, death)

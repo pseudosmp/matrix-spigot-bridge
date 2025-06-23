@@ -298,7 +298,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 
 	public static String yamlEscapeToHtml(String input) {
 		if (input == null) return null;
-		// Normalize line endings
+		// CRLF to LF
 		input = input.replace("\r\n", "\n").replace("\r", "\n");
 		// Replace tabs with 4 spaces (or &emsp; for HTML)
 		input = input.replace("\t", "    ");
