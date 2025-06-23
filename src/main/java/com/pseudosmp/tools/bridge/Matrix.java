@@ -200,10 +200,10 @@ public class Matrix {
 		}
 
 		String COMMANDS = sb.toString();
-		String helpMessage = config.getMessage("matrix_commands.disabled");
+		String disabledMessage = config.getMessage("matrix_commands.disabled");
 
-		if (MatrixSpigotBridge.config.matrixCommandBlacklist.contains(cmd) && helpMessage != null) {
-			sendMessage(helpMessage.replace("{COMMANDS}", COMMANDS));
+		if (MatrixSpigotBridge.config.matrixCommandBlacklist.contains(cmd) && disabledMessage != null) {
+			sendMessage(disabledMessage.replace("{COMMANDS}", COMMANDS));
 			return;
 		}
 
@@ -251,6 +251,14 @@ public class Matrix {
 											.replace("{ERROR}", e.getMessage()));
 					}
 				}
+				break;
+			case "ip":
+				String ipMessage = config.getMessage("matrix_commands.ip");
+				if (ipMessage != null) sendMessage(ipMessage);
+				break;
+			case "help":
+				String helpMessage = config.getMessage("matrix_commands.help");
+				if (helpMessage != null) sendMessage(helpMessage.replace("{COMMANDS}", COMMANDS));
 				break;
 			default:
 				String unknownMessage = config.getMessage("matrix_commands.unknown");
