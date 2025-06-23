@@ -26,7 +26,10 @@ public class ReloadConfig implements CommandExecutor {
         String prevHomeserver = config.matrixServer;
         String prevRoomID = config.matrixRoomId;
 
-        if (!config.load()) return false;
+        if (!config.load()) {
+            sender.sendMessage("§e[MatrixSpigotBridge] §cFailed to reload configuration. Please check the console for errors.");
+            return false;
+        }
 
         if (!config.matrixUserId.equals(prevUser)
                 || !config.getMatrixPassword().equals(prevPwd)
