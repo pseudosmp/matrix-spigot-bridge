@@ -27,11 +27,6 @@ public class RestartBridge implements CommandExecutor {
                 ? ((org.bukkit.entity.Player) sender).getUniqueId().toString()
                 : "CONSOLE";
 
-        if (!sender.hasPermission("msb.command.restart")) {
-            sender.sendMessage("§e[MatrixSpigotBridge] §cYou do not have permission to use this command.");
-            return true;
-        }
-
         // Handle confirmation
         if (args.length > 0 && args[0].equalsIgnoreCase("confirm")) {
             Long requested = pendingConfirmations.get(senderKey);

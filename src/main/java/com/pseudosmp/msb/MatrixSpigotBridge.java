@@ -175,6 +175,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 			}
 		});
 	}
+
 	@Override
 	public void onEnable() {
 		boolean isFirstRun = false;
@@ -183,7 +184,13 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 		logger.info("Starting MatrixSpigotBridge");
 		config = new ConfigUtils(this);
 
-		if (config.usePlaceholderApi && Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
+		if (!config.load()) {
+			logger.severe("Failed to load config.yml! Please check the console for errors.");
+			Bukkit.getPluginManager().disablePlugin(this);
+			return;
+		}
+
+		if (config.canUsePapi && Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
 			logger.info("PlaceholderAPI found and bound, you can use placeholders in messages");
 		}
 		
@@ -277,7 +284,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 			return;
 		}
 
-		if (config.usePlaceholderApi)
+		if (config.canUsePapi)
 			format = PlaceholderAPI.setPlaceholders(player, format);
 		if (config.getFormatSettingBool("reserialize_player"))
 			message = minecraftToMatrixMarkdown(message);
@@ -294,7 +301,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 	}
 
 	public void sendMessageToMinecraft(String format, String message, Player player, String defaultPlayername) {
-		if (config.usePlaceholderApi)
+		if (config.canUsePapi)
 			format = PlaceholderAPI.setPlaceholders(player, format);
 
 		if (config.getFormatSettingBool("reserialize_player"))

@@ -30,7 +30,7 @@ public class ConfigUtils {
     public String matrixCommandPrefix;
     public List<String> matrixCommandBlacklist;
     public boolean cacheMatrixDisplaynames;
-    public boolean usePlaceholderApi;
+    public boolean canUsePapi;
     public String matrixMessagePrefix;
     private Map<String, Object> format = Collections.emptyMap();
 
@@ -38,7 +38,6 @@ public class ConfigUtils {
         this.plugin = plugin;
         this.logger = plugin.getLogger();
         checkAndUpdateConfig();
-        load();
     }
 
     public Boolean load() {
@@ -52,7 +51,7 @@ public class ConfigUtils {
             matrixCommandPrefix = config.getString("matrix.command_prefix", "!");
             matrixCommandBlacklist = config.getStringList("matrix.command_blacklist");
             cacheMatrixDisplaynames = config.getBoolean("common.cacheMatrixDisplaynames");
-            usePlaceholderApi = config.getBoolean("common.usePlaceholderApi") 
+            canUsePapi = config.getBoolean("common.usePlaceholderApi") 
                                 && Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI");
             matrixMessagePrefix = config.getString("format.matrix_chat");
 
@@ -71,6 +70,15 @@ public class ConfigUtils {
     public void checkAndUpdateConfig() {
         File configFile = new File(plugin.getDataFolder(), "config.yml");
         boolean newConfig = !configFile.exists();
+        boolean isOlderConfig;
+
+        try {
+            isOlderConfig = isOlderConfigVersion();
+        } catch (Exception e) {
+            logger.severe("Failed to check config version: " + e.getMessage());
+            return;
+        }
+
         plugin.saveDefaultConfig();
         if (newConfig) {
             String firstRun = "Config generated for the first time! Please edit config.yml and run /msb restart to start the bridge.";
@@ -78,7 +86,7 @@ public class ConfigUtils {
             Bukkit.getOnlinePlayers().stream()
                 .filter(Player::isOp)
                 .forEach(p -> p.sendMessage("§e[MatrixSpigotBridge] " + firstRun));
-        } else if (isOlderConfigVersion()) {
+        } else if (isOlderConfig) {
             logger.warning("Your config.yml is outdated! Please update it to the latest version.");
             try {
                 File newConfigFile = new File(plugin.getDataFolder(), "config.new.yml");

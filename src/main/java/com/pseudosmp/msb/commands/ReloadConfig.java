@@ -16,11 +16,6 @@ public class ReloadConfig implements CommandExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (!sender.hasPermission("msb.command.reload")) {
-            sender.sendMessage("§e[MatrixSpigotBridge] §cYou do not have permission to use this command.");
-            return true;
-        }
-
         String prevUser = config.matrixUserId;
         String prevPwd = config.getMatrixPassword();
         String prevHomeserver = config.matrixServer;
