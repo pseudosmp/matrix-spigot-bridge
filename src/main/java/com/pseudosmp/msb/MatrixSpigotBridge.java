@@ -181,7 +181,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 		logger = getLogger();
 
 		logger.info("Starting MatrixSpigotBridge");
-		ConfigUtils config = new ConfigUtils(this);
+		config = new ConfigUtils(this);
 
 		if (config.usePlaceholderApi && Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
 			logger.info("PlaceholderAPI found and bound, you can use placeholders in messages");
