@@ -73,7 +73,7 @@ format:
         unknown: '❓ Unknown command! Available commands: {COMMANDS}'
         help: '❓ Available commands: {COMMANDS}' # {COMMANDS} excludes your blacklisted commands
         ping: '🏓 Pong! Took {PING}ms'
-        list: '👥 There are {ONLINE} of a max {MAX} players online:\n{PLAYERLIST}'
+        list: '👥 There are {ONLINE} of a max {MAX} players online:\n{NAMES}'
         tps: '⏱️ Server TPS: {TPS}'
         ip: '🌐 Server IP: yourserver.minecraft.best'
 
