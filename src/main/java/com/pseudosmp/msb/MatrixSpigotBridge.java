@@ -350,7 +350,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 		if (config.canUsePapi)
 			format = PlaceholderAPI.setPlaceholders(player, format);
 
-		if (config.getFormatSettingBool("reserialize_player") && !formattedMessage.isEmpty())
+		if (config.getFormatSettingBool("reserialize_matrix") && !formattedMessage.isEmpty())
 			message = matrixHTMLToMinecraft(formattedMessage);
 
 		Bukkit.broadcastMessage(format
