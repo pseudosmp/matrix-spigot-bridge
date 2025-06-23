@@ -218,7 +218,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 		logger.info("Startup sequence complete!");
 	}
 
-	public static String minecraftToMatrixMarkdown(String input) {
+	public static String minecraftToMatrixHTML(String input) {
 		if (input == null) return null;
 		StringBuilder out = new StringBuilder();
 		boolean bold = false, italic = false, underline = false, strike = false, magic = false;
@@ -272,7 +272,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 		return out.toString();
 	}
 
-	public static String matrixMarkdownToMinecraft(String input) {
+	public static String matrixHTMLToMinecraft(String input) {
 		if (input == null) return null;
 
 		// Replace <br> and <br/> with newlines
@@ -302,16 +302,22 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 			return;
 		}
 
+		String formattedMessage = "";
+
 		if (config.canUsePapi)
 			format = PlaceholderAPI.setPlaceholders(player, format);
 		if (config.getFormatSettingBool("reserialize_player"))
-			message = minecraftToMatrixMarkdown(message);
+			formattedMessage = minecraftToMatrixHTML(message);
 		message = ChatColor.stripColor(message);
 
-		matrix.sendMessage(format
-			.replace("{PLAYERNAME}", (player != null) ? player.getName() : "???")
-			.replace("{MESSAGE}", message)
-		);
+		String finalMessage = format.replace("{PLAYERNAME}", (player != null) ? player.getName() : "???")
+			.replace("{MESSAGE}", message);
+		if (!formattedMessage.isEmpty()) {
+			matrix.sendMessage(finalMessage, format
+				.replace("{PLAYERNAME}", (player != null) ? player.getName() : "???")
+				.replace("{MESSAGE}", formattedMessage)
+			);
+		} else matrix.sendMessage(finalMessage, "");
 	}
 
 	public void sendMessageToMinecraft(String format, String message, String formattedMessage, Player player) {
@@ -323,7 +329,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 			format = PlaceholderAPI.setPlaceholders(player, format);
 
 		if (config.getFormatSettingBool("reserialize_player") && !formattedMessage.isEmpty())
-			message = matrixMarkdownToMinecraft(formattedMessage);
+			message = matrixHTMLToMinecraft(formattedMessage);
 
 		Bukkit.broadcastMessage(format
 			.replace("{MATRIXNAME}", (player != null) ? player.getName() : defaultPlayername)

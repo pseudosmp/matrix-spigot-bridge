@@ -45,6 +45,8 @@ format:
         death: '🪦 {MESSAGE}'
         chat: '<{PLAYERNAME}> {MESSAGE}'
     # Reserialization preserves effects like bold, italic, underline, strikethrough and magic.
+    # If you have this setting enabled, you have to use HTML tags instead of symbols to format the above messages.
+    # Bold: <b>text</b>, Italic: <i>text</i>, Underline: <u>text</u>, Strikethrough: <s>text</s>
     reserialize_player: true
         
     # Messages sent in matrix room
@@ -52,7 +54,8 @@ format:
     # Matrix -> Minecraft Chat
     matrix_chat: '[Matrix] {MATRIXNAME}: {MESSAGE}'
     # Reserialization preserves effects like bold, italic, underline, and strikethrough.
-    # Explicitly using minecraft color codes in matrix chat will not be handled.
+    # Explicitly using minecraft color codes in matrix messages will not be handled.
+    # You can use Minecraft color tags in the above message regardless. Here is the character: §
     reserialize_matrix: true
     
     # Server events (start, stop)

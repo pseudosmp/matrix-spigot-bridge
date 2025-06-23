@@ -107,15 +107,23 @@ public class Matrix {
 	}
 
 	public boolean sendMessage(String message) {
+		return sendMessage(message, "");
+	}
+
+	public boolean sendMessage(String message, String formattedMessage) {
 		if (room_id.equals("") || access_token.equals(""))
 			return false;
 
-		JSONObject login_payload = new JSONObject();
-		login_payload.put("msgtype", "m.text");
-		login_payload.put("body", message);
+		JSONObject payload = new JSONObject();
+		payload.put("msgtype", "m.text");
+		payload.put("body", message != null ? message : "");
+		if (formattedMessage != null && !formattedMessage.isEmpty()) {
+			payload.put("format", "org.matrix.custom.html");
+			payload.put("formatted_body", formattedMessage);
+		}
 
 		try {
-			request("POST", "/_matrix/client/api/v1/rooms/" + room_id + "/send/m.room.message", login_payload);
+			request("POST", "/_matrix/client/api/v1/rooms/" + room_id + "/send/m.room.message", payload);
 		} catch (Exception e) {
 			e.printStackTrace();
 			return false;
