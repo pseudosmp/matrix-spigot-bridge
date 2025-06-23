@@ -34,6 +34,9 @@ matrix:
 # PlaceholderAPI is supported! Set usePlaceholderApi to true in the common section to use
 # PlaceholderAPI placeholders in the messages. Usage: %papi_placeholder%
 # An empty value won't send messages for the related event
+# For formatting, Matrix-bound messages should use HTML tags
+# (e.g. <b>bold</b>, <i>italic</i>, <u>underline</u>, <s>strikethrough</s>), 
+# while Minecraft-bound messages should use Minecraft color codes (e.g. §a for green).
 format:
     # Player-related events (join, quit, chat, death)
     # {PLAYERNAME} is the displayed player name, {MESSAGE} is the default event message
@@ -43,37 +46,35 @@ format:
         join: '➕ {MESSAGE}'
         quit: '➖ {MESSAGE}'
         death: '🪦 {MESSAGE}'
-        chat: '<{PLAYERNAME}> {MESSAGE}'
+        chat: '<<b>{PLAYERNAME}</b>> {MESSAGE}'
     # Reserialization preserves effects like bold, italic, underline, strikethrough and magic.
     # If you have this setting enabled, you have to use HTML tags instead of symbols to format the above messages.
-    # Bold: <b>text</b>, Italic: <i>text</i>, Underline: <u>text</u>, Strikethrough: <s>text</s>
     reserialize_player: true
         
     # Messages sent in matrix room
     # {MATRIXNAME} is the matrix user name, {MESSAGE} is the message sent
     # Matrix -> Minecraft Chat
-    matrix_chat: '[Matrix] {MATRIXNAME}: {MESSAGE}'
+    matrix_chat: '[§bMatrix§r] {MATRIXNAME}: {MESSAGE}'
     # Reserialization preserves effects like bold, italic, underline, and strikethrough.
     # Explicitly using minecraft color codes in matrix messages will not be handled.
-    # You can use Minecraft color tags in the above message regardless. Here is the character: §
     reserialize_matrix: true
     
     # Server events (start, stop)
     # Minecraft -> Matrix Chat
     server:
-        start: '🟢 Server online!'
-        stop: '🔴 Server closed.'
-        reconnect: '🔄 Reconnected to Matrix!'
-    
+        start: '🟢 <u><b>Server online!</b></u>'
+        stop: '🔴 <b>Server closed.</b>'
+        reconnect: '🔄 <i>Reconnected to Matrix!</i>'
+
     # Messages that are replies to commands sent in matrix chat
     # Please take note of the included placeholders in each message
     # It is not a requirement to use all included placeholders, but their value will be fetched regardless
     # To not show a message, set its value to empty string. This is not equivalent to blacklisting.
     matrix_commands:
-        error: '❗️ Error while executing command: {ERROR}'
-        disabled: '❌ Command disabled! Available commands: {COMMANDS}'
-        unknown: '❓ Unknown command! Available commands: {COMMANDS}'
-        help: '❓ Available commands: {COMMANDS}' # {COMMANDS} excludes your blacklisted commands
+        error: '❗️ Error while executing command: <b>{ERROR}</b>'
+        disabled: '❌ Command disabled! <b>Available commands:</b> {COMMANDS}'
+        unknown: '❓ Unknown command! <b>Available commands:</b> {COMMANDS}'
+        help: '❓ <b>Available commands:</b> {COMMANDS}' # {COMMANDS} excludes your blacklisted commands
         ping: '🏓 Pong! Took {PING}ms'
         list: |
             👥 There are {ONLINE} of a max {MAX} players online:

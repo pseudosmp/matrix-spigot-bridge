@@ -110,14 +110,16 @@ public class Matrix {
 		if (room_id.equals("") || access_token.equals(""))
 			return false;
 
-		String plainBody = MatrixSpigotBridge.stripHtmlTags(formattedBody);
+		String htmlBody = MatrixSpigotBridge.yamlEscapeToHtml(formattedBody);
+
+		String plainBody = MatrixSpigotBridge.stripHtmlTags(htmlBody);
 
 		JSONObject payload = new JSONObject();
 		payload.put("msgtype", "m.text");
 		payload.put("body", plainBody != null ? plainBody : "");
-		if (formattedBody != null && !formattedBody.isEmpty()) {
+		if (htmlBody != null && !htmlBody.isEmpty()) {
 			payload.put("format", "org.matrix.custom.html");
-			payload.put("formatted_body", formattedBody);
+			payload.put("formatted_body", htmlBody);
 		}
 
 		try {
