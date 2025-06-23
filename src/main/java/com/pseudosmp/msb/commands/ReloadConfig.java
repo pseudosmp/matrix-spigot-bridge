@@ -1,16 +1,17 @@
 package com.pseudosmp.msb.commands;
 
+import com.pseudosmp.msb.MatrixSpigotBridge;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 
-import com.pseudosmp.msb.MatrixSpigotBridge;
+import com.pseudosmp.tools.game.ConfigUtils;
 
 public class ReloadConfig implements CommandExecutor {
-    private final MatrixSpigotBridge plugin;
+    ConfigUtils config;
 
     public ReloadConfig(MatrixSpigotBridge plugin) {
-        this.plugin = plugin;
+        this.config = MatrixSpigotBridge.config;
     }
 
     @Override
@@ -20,22 +21,17 @@ public class ReloadConfig implements CommandExecutor {
             return true;
         }
 
-        String prevUser = plugin.getConfig().getString("matrix.user_id");
-        String prevPwd = plugin.getConfig().getString("matrix.password");
-        String prevHomeserver = plugin.getConfig().getString("matrix.server");
-        String prevRoomID = plugin.getConfig().getString("matrix.room_id");
-        
-        plugin.reloadConfig();
-        plugin.cacheMatrixDisplaynames = plugin.getConfig().getBoolean("common.cacheMatrixDisplaynames");
-        plugin.canUsePapi = plugin.getConfig().getBoolean("common.usePlaceholderApi")
-                && plugin.getServer().getPluginManager().getPlugin("PlaceholderAPI") != null;
-        plugin.matrixMessagePrefix = plugin.getConfig().getString("format.matrix_chat");
-		plugin.matrixCommandPrefix = plugin.getConfig().getString("matrix.command_prefix", "!");
-        
-        if (!plugin.getConfig().getString("matrix.user_id").equals(prevUser)
-                || !plugin.getConfig().getString("matrix.password").equals(prevPwd)
-                || !plugin.getConfig().getString("matrix.server").equals(prevHomeserver)
-                || !plugin.getConfig().getString("matrix.room_id").equals(prevRoomID)) {
+        String prevUser = config.matrixUserId;
+        String prevPwd = config.getMatrixPassword();
+        String prevHomeserver = config.matrixServer;
+        String prevRoomID = config.matrixRoomId;
+
+        config.load();
+
+        if (!config.matrixUserId.equals(prevUser)
+                || !config.getMatrixPassword().equals(prevPwd)
+                || !config.matrixServer.equals(prevHomeserver)
+                || !config.matrixRoomId.equals(prevRoomID)) {
             sender.sendMessage("§e[MatrixSpigotBridge] §aMatrix credentials changed! §7Please run §a/msb restart §7to connect with the new credentials.");
             return true;
         }

@@ -23,9 +23,12 @@ matrix:
     poll_delay: 2
 
     # Prefix for commands in the matrix chat
-    # Currently available commands: !ping, !list, !tps
+    # Currently available commands: ping, list, tps
     # Some examples: '!', '.', '/mc ', '!matrix '
     command_prefix: '!'
+
+    # Add a command to this list to disable it in the matrix chat
+    command_blacklist: []
 
 # Message formats
 # PlaceholderAPI is supported! Set usePlaceholderApi to true in the common section to use
@@ -41,17 +44,38 @@ format:
         quit: '➖ {MESSAGE}'
         death: '🪦 {MESSAGE}'
         chat: '<{PLAYERNAME}> {MESSAGE}'
+        # {DESCRIPTION} is the text you get when you hover over it in-game, 1.17+ ONLY!
+        advancement: '🏆 {PLAYERNAME} has made an advancement: {MESSAGE}\n_{DESCRIPTION}_'
+    # Reserialization preserves effects like bold, italic, underline, strikethrough and magic.
+    reserialize_player: true
         
     # Messages sent in matrix room
     # {MATRIXNAME} is the matrix user name, {MESSAGE} is the message sent
     # Matrix -> Minecraft Chat
     matrix_chat: '[Matrix] {MATRIXNAME}: {MESSAGE}'
+    # Reserialization preserves effects like bold, italic, underline, and strikethrough.
+    # Explicitly using minecraft color codes in matrix chat will not be handled.
+    reserialize_matrix: true
     
     # Server events (start, stop)
     # Minecraft -> Matrix Chat
     server:
         start: '🟢 Server online!'
         stop: '🔴 Server closed.'
+        reconnect: '🔄 Reconnected to Matrix!'
+    
+    # Messages that are replies to commands sent in matrix chat
+    # Please take note of the included placeholders in each message
+    # It is not a requirement to use all included placeholders, but their value will be fetched regardless
+    matrix_commands:
+        error: '❗️ Error while executing command: {ERROR}'
+        disabled: '❌ Command disabled! Available commands: {COMMANDS}'
+        unknown: '❓ Unknown command! Available commands: {COMMANDS}'
+        help: '❓ Available commands: {COMMANDS}' # {COMMANDS} excludes your blacklisted commands
+        ping: '🏓 Pong! Took {PING}ms'
+        list: '👥 There are {ONLINE} of a max {MAX} players online:\n{PLAYERLIST}'
+        tps: '⏱️ Server TPS: {TPS}'
+        ip: '🌐 Server IP: yourserver.minecraft.best'
 
 common:
     # Set this value to false if you want the plugin to always fetch displaynames from matrix server.
@@ -64,4 +88,4 @@ common:
     usePlaceholderApi: false
 
     # Do not touch this!
-    configVersion: 2.1.1
+    configVersion: 2.2.0

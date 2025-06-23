@@ -2,16 +2,13 @@ package com.pseudosmp.msb;
 
 import org.bukkit.command.*;
 import com.pseudosmp.msb.commands.*;
-// import other command classes as needed
 
 import java.util.*;
 
 public class MsbCommand implements CommandExecutor, TabCompleter {
-    private final MatrixSpigotBridge plugin;
     private final Map<String, CommandExecutor> subcommands = new HashMap<>();
 
     public MsbCommand(MatrixSpigotBridge plugin) {
-        this.plugin = plugin;
         subcommands.put("reload", new ReloadConfig(plugin));
         subcommands.put("restart", new RestartBridge(plugin));
         subcommands.put("ping", new PingBridge(plugin));

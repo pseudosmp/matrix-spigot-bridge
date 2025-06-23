@@ -1,6 +1,5 @@
 package com.pseudosmp.tools.game;
 
-import org.bukkit.ChatColor;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 
@@ -16,7 +15,7 @@ public class MinecraftChatListener extends BaseListener {
     public void messageReceived(AsyncPlayerChatEvent evt) {
         sendMatrixMessage(
     		_plugin.getConfig().getString("format.player.chat"),
-    		ChatColor.stripColor(evt.getMessage()),
+    		evt.getMessage(),
     		evt.getPlayer()
 		);
     }
