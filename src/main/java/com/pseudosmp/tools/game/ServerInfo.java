@@ -45,7 +45,7 @@ public class ServerInfo {
             Object minecraftServer = server.getClass().getMethod("getServer").invoke(server);
             java.lang.reflect.Field recentTpsField = minecraftServer.getClass().getField("recentTps");
             double[] recentTps = (double[]) recentTpsField.get(minecraftServer);
-            return recentTps[0];
+            return Math.min(recentTps[0], 20.0); // sometimes shows 20.01, so capping it to 20
         } catch (Exception e) {
             // Could not fetch TPS
             return -1;
