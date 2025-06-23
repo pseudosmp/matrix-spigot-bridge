@@ -8,7 +8,6 @@ import org.bukkit.command.CommandSender;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import com.pseudosmp.tools.bridge.Matrix;
 import com.pseudosmp.tools.game.ConfigUtils;
 
 public class RestartBridge implements CommandExecutor {
@@ -56,7 +55,7 @@ public class RestartBridge implements CommandExecutor {
     private void doRestart(CommandSender sender) {
         sender.sendMessage("§e[MatrixSpigotBridge] §aRestarting Matrix bridge...");
 
-        config.load();
+        if (!config.load()) return;
         plugin.startBridgeAsync(sender, success -> {
             if (success) {
                 sender.sendMessage("§e[MatrixSpigotBridge] §aMatrix bridge restarted successfully.");

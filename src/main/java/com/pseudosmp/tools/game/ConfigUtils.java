@@ -41,24 +41,31 @@ public class ConfigUtils {
         load();
     }
 
-    public void load() {
-        plugin.reloadConfig();
-        FileConfiguration config = plugin.getConfig();
-        matrixServer = config.getString("matrix.server");
-        matrixUserId = config.getString("matrix.user_id");
-        matrixRoomId = config.getString("matrix.room_id");
-        matrixPollDelay = config.getInt("matrix.poll_delay");
-        matrixCommandPrefix = config.getString("matrix.command_prefix", "!");
-        matrixCommandBlacklist = config.getStringList("matrix.command_blacklist");
-        cacheMatrixDisplaynames = config.getBoolean("common.cacheMatrixDisplaynames");
-        usePlaceholderApi = config.getBoolean("common.usePlaceholderApi") 
-                            && Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI");
-        matrixMessagePrefix = config.getString("format.matrix_chat");
+    public Boolean load() {
+        try {
+            plugin.reloadConfig();
+            FileConfiguration config = plugin.getConfig();
+            matrixServer = config.getString("matrix.server");
+            matrixUserId = config.getString("matrix.user_id");
+            matrixRoomId = config.getString("matrix.room_id");
+            matrixPollDelay = config.getInt("matrix.poll_delay");
+            matrixCommandPrefix = config.getString("matrix.command_prefix", "!");
+            matrixCommandBlacklist = config.getStringList("matrix.command_blacklist");
+            cacheMatrixDisplaynames = config.getBoolean("common.cacheMatrixDisplaynames");
+            usePlaceholderApi = config.getBoolean("common.usePlaceholderApi") 
+                                && Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI");
+            matrixMessagePrefix = config.getString("format.matrix_chat");
 
-        ConfigurationSection formatSection = config.getConfigurationSection("format");
-        if (formatSection != null) format = formatSection.getValues(true);
+            ConfigurationSection formatSection = config.getConfigurationSection("format");
+            if (formatSection != null) format = formatSection.getValues(true);
 
-        Matrix.availableCommands.removeAll(matrixCommandBlacklist);
+            Matrix.availableCommands.removeAll(matrixCommandBlacklist);
+            return true;
+        } catch (Exception e) {
+            logger.severe("Failed to load config.yml: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
     }
 
     public void checkAndUpdateConfig() {
