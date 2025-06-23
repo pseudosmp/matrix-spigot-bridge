@@ -29,6 +29,8 @@ import com.pseudosmp.tools.game.MinecraftChatListener;
 import com.pseudosmp.tools.game.PlayerEventsListener;
 import com.pseudosmp.tools.game.ConfigUtils;
 
+import org.apache.commons.text.StringEscapeUtils;
+
 public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 	private java.util.logging.Logger logger;
 	private final Set<String> relayedEventIDs = ConcurrentHashMap.newKeySet();
@@ -82,13 +84,14 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 
 							String sender_address = matrix.getDisplayName(obj.getString("sender"), !config.cacheMatrixDisplaynames);
 							String body = obj.getJSONObject("content").getString("body");
+							String formattedBody = obj.getJSONObject("content").optString("formatted_body", "");
 
 							if (body.startsWith(config.matrixCommandPrefix)) {
 								String command = body.substring(config.matrixCommandPrefix.length()).trim();
 								matrix.handleCommand(command, sender_address);
 							} else sendMessageToMinecraft(
 								config.matrixMessagePrefix,
-								obj.getJSONObject("content").getString("body"),
+								body, formattedBody,
 								null,
 								sender_address
 							);
@@ -225,56 +228,71 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 				char code = Character.toLowerCase(chars[++i]);
 				switch (code) {
 					case 'l': // Bold
-						if (!bold) { out.append("**"); bold = true; }
+						if (!bold) { out.append("<b>"); bold = true; }
 						break;
 					case 'o': // Italic
-						if (!italic) { out.append("_"); italic = true; }
+						if (!italic) { out.append("<i>"); italic = true; }
 						break;
 					case 'n': // Underline
 						if (!underline) { out.append("<u>"); underline = true; }
 						break;
 					case 'm': // Strikethrough
-						if (!strike) { out.append("~~"); strike = true; }
+						if (!strike) { out.append("<s>"); strike = true; }
 						break;
-					case 'k': // Obfuscated (magic)
-						if (!magic) { out.append("�"); magic = true; }
+					case 'k': // Magic
+						if (!magic) { magic = true; }
 						break;
 					case 'r': // Reset
-						if (bold) { out.append("**"); bold = false; }
-						if (italic) { out.append("_"); italic = false; }
+						if (bold) { out.append("</b>"); bold = false; }
+						if (italic) { out.append("</i>"); italic = false; }
 						if (underline) { out.append("</u>"); underline = false; }
-						if (strike) { out.append("~~"); strike = false; }
-						if (magic) { out.append("</span>"); magic = false; }
+						if (strike) { out.append("</s>"); strike = false; }
+						magic = false;
 						break;
 					default:
 						// Ignore color codes and unknown codes
 						break;
+				}
+			} else if (magic) {
+				// Replace all characters with '�' while magic is active
+				if (chars[i] != ' ' && chars[i] != '\n') {
+					out.append('�');
+				} else {
+					out.append(chars[i]);
 				}
 			} else {
 				out.append(chars[i]);
 			}
 		}
 		// Close any unclosed tags
-		if (bold) out.append("**");
-		if (italic) out.append("_");
+		if (bold) out.append("</b>");
+		if (italic) out.append("</i>");
 		if (underline) out.append("</u>");
-		if (strike) out.append("~~");
-		if (magic) out.append("</span>");
+		if (strike) out.append("</s>");
 		return out.toString();
 	}
 
 	public static String matrixMarkdownToMinecraft(String input) {
 		if (input == null) return null;
-		// Bold: **text** > §ltext§r
-		input = input.replaceAll("\\*\\*(.*?)\\*\\*", "§l$1§r");
-		// Italic: _text_ > §o$1§r
-		input = input.replaceAll("_(.*?)_", "§o$1§r");
-		// Strikethrough: ~~text~~ > §m$1§r
-		input = input.replaceAll("~~(.*?)~~", "§m$1§r");
-		// Underline: <u>text</u> > §n$1§r
+
+		// Replace <br> and <br/> with newlines
+		input = input.replaceAll("(?i)<br\\s*/?>", "\n");
+
+		// Bold: <b> or <strong>
+		input = input.replaceAll("(?i)<(b|strong)>(.*?)</\\1>", "§l$2§r");
+		// Italic: <i> or <em>
+		input = input.replaceAll("(?i)<(i|em)>(.*?)</\\1>", "§o$2§r");
+		// Underline: <u>
 		input = input.replaceAll("(?i)<u>(.*?)</u>", "§n$1§r");
-		// Remove any remaining HTML tags
+		// Strikethrough: <s>, <strike>, <del>
+		input = input.replaceAll("(?i)<(s|strike|del)>(.*?)</\\1>", "§m$2§r");
+
+		// Remove all other HTML tags
 		input = input.replaceAll("(?i)<[^>]+>", "");
+
+		// Unescape HTML entities
+		input = StringEscapeUtils.unescapeHtml4(input);
+
 		return input;
 	}
 
@@ -296,16 +314,16 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 		);
 	}
 
-	public void sendMessageToMinecraft(String format, String message, Player player) {
-		sendMessageToMinecraft(format, message, player, "???");
+	public void sendMessageToMinecraft(String format, String message, String formattedMessage, Player player) {
+		sendMessageToMinecraft(format, message, formattedMessage, player, "???");
 	}
 
-	public void sendMessageToMinecraft(String format, String message, Player player, String defaultPlayername) {
+	public void sendMessageToMinecraft(String format, String message, String formattedMessage, Player player, String defaultPlayername) {
 		if (config.canUsePapi)
 			format = PlaceholderAPI.setPlaceholders(player, format);
 
-		if (config.getFormatSettingBool("reserialize_player"))
-			message = matrixMarkdownToMinecraft(message);
+		if (config.getFormatSettingBool("reserialize_player") && !formattedMessage.isEmpty())
+			message = matrixMarkdownToMinecraft(formattedMessage);
 
 		Bukkit.broadcastMessage(format
 			.replace("{MATRIXNAME}", (player != null) ? player.getName() : defaultPlayername)

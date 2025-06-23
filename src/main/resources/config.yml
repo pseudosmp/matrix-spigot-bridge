@@ -23,11 +23,11 @@ matrix:
     poll_delay: 2
 
     # Prefix for commands in the matrix chat
-    # Currently available commands: ping, list, tps
     # Some examples: '!', '.', '/mc ', '!matrix '
     command_prefix: '!'
 
     # Add a command to this list to disable it in the matrix chat
+    # Currently available commands: help, ping, list, tps, ip
     command_blacklist: []
 
 # Message formats
@@ -65,7 +65,7 @@ format:
     # Messages that are replies to commands sent in matrix chat
     # Please take note of the included placeholders in each message
     # It is not a requirement to use all included placeholders, but their value will be fetched regardless
-    # Instead of giving an empty string, blacklist the command to disable the response
+    # To not show a message, set its value to empty string. This is not equivalent to blacklisting.
     matrix_commands:
         error: '❗️ Error while executing command: {ERROR}'
         disabled: '❌ Command disabled! Available commands: {COMMANDS}'
