@@ -106,20 +106,18 @@ public class Matrix {
 		return (int) delay;
 	}
 
-	public boolean sendMessage(String message) {
-		return sendMessage(message, "");
-	}
-
-	public boolean sendMessage(String message, String formattedMessage) {
+	public boolean sendMessage(String formattedBody) {
 		if (room_id.equals("") || access_token.equals(""))
 			return false;
 
+		String plainBody = MatrixSpigotBridge.stripHtmlTags(formattedBody);
+
 		JSONObject payload = new JSONObject();
 		payload.put("msgtype", "m.text");
-		payload.put("body", message != null ? message : "");
-		if (formattedMessage != null && !formattedMessage.isEmpty()) {
+		payload.put("body", plainBody != null ? plainBody : "");
+		if (formattedBody != null && !formattedBody.isEmpty()) {
 			payload.put("format", "org.matrix.custom.html");
-			payload.put("formatted_body", formattedMessage);
+			payload.put("formatted_body", formattedBody);
 		}
 
 		try {

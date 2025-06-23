@@ -296,6 +296,15 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 		return input;
 	}
 
+	public static String stripHtmlTags(String html) {
+		if (html == null) return null;
+		// Remove all HTML tags
+		String text = html.replaceAll("(?i)<[^>]+>", "");
+		// Unescape HTML entities
+		text = StringEscapeUtils.unescapeHtml4(text);
+		return text;
+	}
+
 	public void sendMessageToMatrix(String format, String message, Player player) {
 		if (matrix == null || !matrix.isValid()) {
 			// Ignoring for now, not connected to matrix server yet
@@ -310,14 +319,14 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 			formattedMessage = minecraftToMatrixHTML(message);
 		message = ChatColor.stripColor(message);
 
-		String finalMessage = format.replace("{PLAYERNAME}", (player != null) ? player.getName() : "???")
-			.replace("{MESSAGE}", message);
-		if (!formattedMessage.isEmpty()) {
-			matrix.sendMessage(finalMessage, format
+		if (!formattedMessage.isEmpty()) matrix.sendMessage(format
 				.replace("{PLAYERNAME}", (player != null) ? player.getName() : "???")
 				.replace("{MESSAGE}", formattedMessage)
+		);
+		else matrix.sendMessage(format
+				.replace("{PLAYERNAME}", (player != null) ? player.getName() : "???")
+				.replace("{MESSAGE}", message)
 			);
-		} else matrix.sendMessage(finalMessage, "");
 	}
 
 	public void sendMessageToMinecraft(String format, String message, String formattedMessage, Player player) {
