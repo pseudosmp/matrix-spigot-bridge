@@ -28,9 +28,9 @@ public class Matrix {
 
 	private HashMap<String, String> displayname_by_matrixid = new HashMap<String, String>();
 
-	public static final List<String> availableCommands = java.util.Arrays.asList(
+	public static final List<String> availableCommands = new java.util.ArrayList<>(java.util.Arrays.asList(
 		"help", "ping", "list", "tps", "ip"
-	);
+	));
 
 	ConfigUtils config = MatrixSpigotBridge.config;
 
