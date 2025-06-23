@@ -44,8 +44,6 @@ format:
         quit: '➖ {MESSAGE}'
         death: '🪦 {MESSAGE}'
         chat: '<{PLAYERNAME}> {MESSAGE}'
-        # {DESCRIPTION} is the text you get when you hover over it in-game, 1.17+ ONLY!
-        advancement: '🏆 {PLAYERNAME} has made an advancement: {MESSAGE}\n_{DESCRIPTION}_'
     # Reserialization preserves effects like bold, italic, underline, strikethrough and magic.
     reserialize_player: true
         
