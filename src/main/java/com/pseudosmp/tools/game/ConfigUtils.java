@@ -70,14 +70,6 @@ public class ConfigUtils {
     public void checkAndUpdateConfig() {
         File configFile = new File(plugin.getDataFolder(), "config.yml");
         boolean newConfig = !configFile.exists();
-        boolean isOlderConfig;
-
-        try {
-            isOlderConfig = isOlderConfigVersion();
-        } catch (Exception e) {
-            logger.severe("Failed to check config version: " + e.getMessage());
-            return;
-        }
 
         plugin.saveDefaultConfig();
         if (newConfig) {
@@ -86,7 +78,7 @@ public class ConfigUtils {
             Bukkit.getOnlinePlayers().stream()
                 .filter(Player::isOp)
                 .forEach(p -> p.sendMessage("§e[MatrixSpigotBridge] " + firstRun));
-        } else if (isOlderConfig) {
+        } else if (isOlderConfigVersion()) {
             logger.warning("Your config.yml is outdated! Please update it to the latest version.");
             try {
                 File newConfigFile = new File(plugin.getDataFolder(), "config.new.yml");
