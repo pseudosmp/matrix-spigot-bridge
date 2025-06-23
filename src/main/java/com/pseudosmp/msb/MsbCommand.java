@@ -2,16 +2,13 @@ package com.pseudosmp.msb;
 
 import org.bukkit.command.*;
 import com.pseudosmp.msb.commands.*;
-// import other command classes as needed
 
 import java.util.*;
 
 public class MsbCommand implements CommandExecutor, TabCompleter {
-    private final MatrixSpigotBridge plugin;
     private final Map<String, CommandExecutor> subcommands = new HashMap<>();
 
     public MsbCommand(MatrixSpigotBridge plugin) {
-        this.plugin = plugin;
         subcommands.put("reload", new ReloadConfig(plugin));
         subcommands.put("restart", new RestartBridge(plugin));
         subcommands.put("ping", new PingBridge(plugin));
@@ -19,17 +16,26 @@ public class MsbCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (args.length == 0) {
+        if (args.length < 1) {
             sender.sendMessage(command.getUsage());
             return true;
         }
+
         CommandExecutor sub = subcommands.get(args[0].toLowerCase());
-        if (sub != null) {
-            // Pass subcommand arguments (excluding the subcommand itself)
-            return sub.onCommand(sender, command, label, Arrays.copyOfRange(args, 1, args.length));
+        String perm = "msb.command." + args[0].toLowerCase();
+
+        if (sub == null) {
+            sender.sendMessage(command.getUsage());
+            return true;
         }
-        sender.sendMessage(command.getUsage());
-        return true;
+
+        if (!sender.hasPermission(perm)) {
+            sender.sendMessage("§e[MatrixSpigotBridge] §cYou do not have permission to use this command.");
+            return true;
+        }
+
+        // Pass subcommand arguments (excluding the subcommand itself)
+        return sub.onCommand(sender, command, label, Arrays.copyOfRange(args, 1, args.length));
     }
 
     @Override

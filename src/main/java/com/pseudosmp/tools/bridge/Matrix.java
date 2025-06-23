@@ -7,10 +7,15 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.util.HashMap;
+import java.util.List;
 
 import javax.net.ssl.HttpsURLConnection;
 
 import org.json.*;
+
+import com.pseudosmp.msb.MatrixSpigotBridge;
+import com.pseudosmp.tools.game.ConfigUtils;
+import com.pseudosmp.tools.game.ServerInfo;
 
 public class Matrix {
 	private String access_token = "";
@@ -22,6 +27,12 @@ public class Matrix {
 	private String room_filters = "";
 
 	private HashMap<String, String> displayname_by_matrixid = new HashMap<String, String>();
+
+	public static final List<String> availableCommands = new java.util.ArrayList<>(java.util.Arrays.asList(
+		"help", "ping", "list", "tps", "ip"
+	));
+
+	ConfigUtils config = MatrixSpigotBridge.config;
 
 	HttpsURLConnection url_conn;
 
@@ -84,27 +95,35 @@ public class Matrix {
 		return true;
 	}
     
-	public String ping() {
+	public int ping() {
 		long start = System.currentTimeMillis();
 		try {
 			get("/_matrix/client/versions");
 		} catch (Exception e) {
-			return "Ping failed: " + e.getMessage();
+			return -1; // This situation _in theory_ should never happen :P
 		}
 		long delay = System.currentTimeMillis() - start;
-		return "Pong! Took " + delay + "ms";
+		return (int) delay;
 	}
 
-	public boolean sendMessage(String message) {
+	public boolean sendMessage(String formattedBody) {
 		if (room_id.equals("") || access_token.equals(""))
 			return false;
 
-		JSONObject login_payload = new JSONObject();
-		login_payload.put("msgtype", "m.text");
-		login_payload.put("body", message);
+		String htmlBody = MatrixSpigotBridge.yamlEscapeToHtml(formattedBody);
+
+		String plainBody = MatrixSpigotBridge.stripHtmlTags(htmlBody);
+
+		JSONObject payload = new JSONObject();
+		payload.put("msgtype", "m.text");
+		payload.put("body", plainBody != null ? plainBody : "");
+		if (htmlBody != null && !htmlBody.isEmpty()) {
+			payload.put("format", "org.matrix.custom.html");
+			payload.put("formatted_body", htmlBody);
+		}
 
 		try {
-			request("POST", "/_matrix/client/api/v1/rooms/" + room_id + "/send/m.room.message", login_payload);
+			request("POST", "/_matrix/client/api/v1/rooms/" + room_id + "/send/m.room.message", payload);
 		} catch (Exception e) {
 			e.printStackTrace();
 			return false;
@@ -182,35 +201,76 @@ public class Matrix {
 		String[] parts = command.trim().split("\\s+");
 		String cmd = parts[0].toLowerCase();
 
+		StringBuilder sb = new StringBuilder();
+		for (String cmdName : availableCommands) {
+			if (sb.length() > 0) sb.append(", ");
+			sb.append(MatrixSpigotBridge.config.matrixCommandPrefix).append(cmdName);
+		}
+
+		String COMMANDS = sb.toString();
+		String disabledMessage = config.getMessage("matrix_commands.disabled");
+
+		if (MatrixSpigotBridge.config.matrixCommandBlacklist.contains(cmd) && disabledMessage != null) {
+			sendMessage(disabledMessage.replace("{COMMANDS}", COMMANDS));
+			return;
+		}
+
 		switch (cmd) {
 			case "ping":
-				sendMessage(ping());
+				String pingMessage = config.getMessage("matrix_commands.ping");
+				int ping = ping();
+				if (pingMessage != null) {
+					if (ping > 0) sendMessage(pingMessage.replace("{PING}", String.valueOf(ping())));
+					else sendMessage(config.getMessage("matrix_commands.error")
+										.replace("{ERROR}", "Could not ping Matrix server."));
+				}
 				break;
 			case "list":
-				try {
-					com.pseudosmp.tools.game.ServerInfo.PlayerStatus status = com.pseudosmp.tools.game.ServerInfo.getPlayerList();
-					StringBuilder names = new StringBuilder();
-					for (String name : status.getNames()) {
-						if (names.length() > 0) names.append(", ");
-						names.append(name);
+				String listMessage = config.getMessage("matrix_commands.list");
+				if (listMessage != null) {
+					try {
+						ServerInfo.PlayerStatus status = ServerInfo.getPlayerList();
+						StringBuilder names = new StringBuilder();
+						for (String name : status.getNames()) {
+							if (names.length() > 0) names.append(", ");
+							names.append(name);
+						}
+
+						String finalListMessage = listMessage
+							.replace("{ONLINE}", String.valueOf(status.getOnline()))
+							.replace("{MAX}", String.valueOf(status.getMax()))
+							.replace("{NAMES}", names.toString());
+
+						sendMessage(finalListMessage);
+					} catch (Exception e) {
+						sendMessage(config.getMessage("matrix_commands.error")
+										.replace("{ERROR}", e.getMessage()));
 					}
-					String msg = "There are " + status.getOnline() + " of a max " + status.getMax() + " players online: " +
-						(status.getOnline() > 0 ? names.toString() : "");
-					sendMessage(msg);
-				} catch (Exception e) {
-					sendMessage("Could not fetch player list.");
 				}
 				break;
 			case "tps":
-				try {
-					double tps = com.pseudosmp.tools.game.ServerInfo.getTps();
-					sendMessage("Current server TPS: " + String.format("%.2f", tps));
-				} catch (Exception e) {
-					sendMessage("Could not fetch server TPS.");
+				String tpsMessage = config.getMessage("matrix_commands.tps");
+				if (tpsMessage != null) {
+					try {
+						double tps = ServerInfo.getTps();
+						sendMessage(tpsMessage.replace("{TPS}", String.format("%.2f", tps)));
+					} catch (Exception e) {
+						sendMessage(config.getMessage("matrix_commands.error")
+											.replace("{ERROR}", e.getMessage()));
+					}
 				}
 				break;
+			case "ip":
+				String ipMessage = config.getMessage("matrix_commands.ip");
+				if (ipMessage != null) sendMessage(ipMessage);
+				break;
+			case "help":
+				String helpMessage = config.getMessage("matrix_commands.help");
+				if (helpMessage != null) sendMessage(helpMessage.replace("{COMMANDS}", COMMANDS));
+				break;
 			default:
-				// Unknown command, optionally handle or ignore
+				String unknownMessage = config.getMessage("matrix_commands.unknown");
+				if (unknownMessage != null) sendMessage(unknownMessage.replace("{COMMANDS}", COMMANDS));
 				break;
 		}
 	}
@@ -221,7 +281,6 @@ public class Matrix {
 			e.printStackTrace();
 			return false;
 		}
-
 		return true;
 	}
 

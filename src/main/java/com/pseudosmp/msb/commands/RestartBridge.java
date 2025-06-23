@@ -8,13 +8,17 @@ import org.bukkit.command.CommandSender;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.pseudosmp.tools.game.ConfigUtils;
+
 public class RestartBridge implements CommandExecutor {
     private final MatrixSpigotBridge plugin;
     private final Map<String, Long> pendingConfirmations = new ConcurrentHashMap<>();
     private final long CONFIRM_TIMEOUT = 60_000; // 60 seconds
+    private final ConfigUtils config;
 
     public RestartBridge(MatrixSpigotBridge plugin) {
         this.plugin = plugin;
+        this.config = MatrixSpigotBridge.config;
     }
 
     @Override
@@ -22,11 +26,6 @@ public class RestartBridge implements CommandExecutor {
         String senderKey = sender instanceof org.bukkit.entity.Player
                 ? ((org.bukkit.entity.Player) sender).getUniqueId().toString()
                 : "CONSOLE";
-
-        if (!sender.hasPermission("msb.command.restart")) {
-            sender.sendMessage("§e[MatrixSpigotBridge] §cYou do not have permission to use this command.");
-            return true;
-        }
 
         // Handle confirmation
         if (args.length > 0 && args[0].equalsIgnoreCase("confirm")) {
@@ -51,13 +50,15 @@ public class RestartBridge implements CommandExecutor {
     private void doRestart(CommandSender sender) {
         sender.sendMessage("§e[MatrixSpigotBridge] §aRestarting Matrix bridge...");
 
-        plugin.reloadConfig();
-        plugin.cacheMatrixDisplaynames = plugin.getConfig().getBoolean("common.cacheMatrixDisplaynames");
-        plugin.canUsePapi = plugin.getConfig().getBoolean("common.usePlaceholderApi")
-                && plugin.getServer().getPluginManager().getPlugin("PlaceholderAPI") != null;
+        if (!config.load()) {
+            sender.sendMessage("§e[MatrixSpigotBridge] §cFailed to reload configuration. Please check the console for errors.");
+            return;
+        }
+
         plugin.startBridgeAsync(sender, success -> {
             if (success) {
                 sender.sendMessage("§e[MatrixSpigotBridge] §aMatrix bridge restarted successfully.");
+                plugin.getMatrix().sendMessage(config.getMessage("server.reconnect"));
             } else {
                 sender.sendMessage("§e[MatrixSpigotBridge] §cFailed to restart Matrix bridge. Check your config and run /msb restart again.");
             }

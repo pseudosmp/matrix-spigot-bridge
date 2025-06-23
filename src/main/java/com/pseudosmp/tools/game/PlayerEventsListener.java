@@ -1,6 +1,5 @@
 package com.pseudosmp.tools.game;
 
-import org.bukkit.ChatColor;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.*;
@@ -12,6 +11,8 @@ public class PlayerEventsListener extends BaseListener {
 	public PlayerEventsListener(MatrixSpigotBridge plugin) {
 		super(plugin);
 	}
+
+	ConfigUtils config = MatrixSpigotBridge.config;
 	
 	@EventHandler
     public void playerJoined(PlayerJoinEvent evt) {
@@ -20,8 +21,8 @@ public class PlayerEventsListener extends BaseListener {
         	message = "";
 
         sendMatrixMessage(
-    		_plugin.getConfig().getString("format.player.join"),
-    		ChatColor.stripColor(message),
+    		config.getMessage("player.join"),
+    		message,
     		evt.getPlayer()
 		);
     }
@@ -33,8 +34,8 @@ public class PlayerEventsListener extends BaseListener {
         	message = "";
         
         sendMatrixMessage(
-    		_plugin.getConfig().getString("format.player.quit"),
-    		ChatColor.stripColor(message),
+    		config.getMessage("player.quit"),
+    		message,
     		evt.getPlayer()
 		);
     }
@@ -46,8 +47,8 @@ public class PlayerEventsListener extends BaseListener {
         	message = "";
 
         sendMatrixMessage(
-    		_plugin.getConfig().getString("format.player.death"),
-    		ChatColor.stripColor(message),
+    		config.getMessage("player.death"),
+    		message,
     		evt.getEntity()
 		);
     }
