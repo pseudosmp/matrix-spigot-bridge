@@ -3,19 +3,24 @@
 MatrixSpigotBridge is a Spigot plugin that uses [matrix.org](https://matrix.org), an instant messaging protocol, to let interact with the players without logging onto the Minecraft server.
 
 This is a fork of MatrixSpigotBridge that aims to continue support and add new features. Currently, this fork adds these features:
-- Matrix room commands: <br><br>![image](https://github.com/user-attachments/assets/ecdb0cf0-ab6a-4368-8216-fe377826b66c)<br><br>
-- In-game commands: `/msb [ping | reload | restart]` <br><br>![image](https://github.com/user-attachments/assets/cbbe5b2e-d171-4bab-8edc-e7e4dce20179)<br><br>
 - Asynchronous connection to Matrix Server, so that your server isnt prevented from starting if the plugin is unable to connect.
+- Format messages in config with HTML tags
+- Matrix room commands: <br><br>![image](https://github.com/user-attachments/assets/be26ce75-6ff6-422a-b4be-78be042ab6e5)<br><br>
+- In-game commands: `/msb [ping | reload | restart]` <br><br>![image](https://github.com/user-attachments/assets/cbbe5b2e-d171-4bab-8edc-e7e4dce20179)<br><br>
+- Reserialization (preserves formatting) across the two chats<br><br>![image](https://github.com/user-attachments/assets/b8d8a914-1e6f-43da-866b-3048e0f736e1)<br><br>
 
-This will let players the ability to chat with people on your Matrix room as well as having people on the Matrix room be able to chat with people on the Minecraft server.
-
-The plugin could be useful for example in the situation of someone not being at their computer and wanting to talk to in-game players.
-
-[PlaceholderAPI](https://www.spigotmc.org/resources/placeholderapi.6245 'Plugin PlaceholderAPI by clip') is supported so if you have it, you can add fancy placeholders in all plugin's messages :) Here is an example usage
+[PlaceholderAPI](https://www.spigotmc.org/resources/placeholderapi.6245 'Plugin PlaceholderAPI by clip') is supported so if you have it, you can add fancy placeholders in all plugin's messages :D Here is an example usage
 
 Config:
 
-![image](https://github.com/user-attachments/assets/1cb7d33f-bcca-4113-bd90-cf4bd78795a4)
+```yaml
+format:
+    player:
+        join: '➕ {MESSAGE}'
+        quit: '➖ {MESSAGE}'
+        death: '🪦 {MESSAGE}'
+        chat: <blockquote><b>{PLAYERNAME}</b> from %playerbiomes_biome_name_english%</blockquote>{MESSAGE}
+```
 
 Matrix Chat:
 
