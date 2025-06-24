@@ -3,11 +3,19 @@
 
 name: Java CI with Maven
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+    branches:
+      - '**'
 
 jobs:
-
   build:
+    if: |
+      github.event_name == 'push' && !startsWith(github.event.head_commit.message, '[ci-skip]') ||
+      github.event_name == 'pull_request' && !startsWith(github.event.pull_request.title, '[ci-skip]')
 
     runs-on: ubuntu-latest
 
