@@ -22,13 +22,16 @@ matrix:
     # Lower values will result in faster message delivery, but will increase server load.
     poll_delay: 2
 
+    # Number of retries for every failed request to the matrix server
+    max_retries: 5
+
     # Prefix for commands in the matrix chat
     # Some examples: '!', '.', '/mc ', '!matrix '
     command_prefix: '!'
 
     # Add a command to this list to disable it in the matrix chat
-    # Currently available commands: help, ping, list, tps, ip
-    command_blacklist: []
+    # For all available commands, please refer to the latest default config.yml
+    available_commands: [help, ping, list, tps, ip]
 
 # Message formats
 # PlaceholderAPI is supported! Set usePlaceholderApi to true in the common section to use
@@ -94,4 +97,4 @@ common:
     usePlaceholderApi: false
 
     # Do not touch this!
-    configVersion: 2.2.0
+    configVersion: 2.3.0

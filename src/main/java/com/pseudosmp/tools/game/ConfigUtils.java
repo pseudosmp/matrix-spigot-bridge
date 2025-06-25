@@ -1,7 +1,6 @@
 package com.pseudosmp.tools.game;
 
 import com.pseudosmp.msb.MatrixSpigotBridge;
-import com.pseudosmp.tools.bridge.Matrix;
 
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
@@ -27,8 +26,9 @@ public class ConfigUtils {
     public String matrixUserId;
     public String matrixRoomId;
     public int matrixPollDelay;
+    public int matrixMaxRetries;
     public String matrixCommandPrefix;
-    public List<String> matrixCommandBlacklist;
+    public List<String> matrixAvailableCommands;
     public boolean cacheMatrixDisplaynames;
     public boolean canUsePapi;
     public String matrixMessagePrefix;
@@ -44,12 +44,25 @@ public class ConfigUtils {
         try {
             plugin.reloadConfig();
             FileConfiguration config = plugin.getConfig();
+
             matrixServer = config.getString("matrix.server");
+            if (matrixServer.endsWith("/")) {
+                matrixServer = matrixServer.substring(0, matrixServer.length() - 1);
+                config.set("matrix.server", matrixServer);
+                plugin.saveConfig();
+            }
+
             matrixUserId = config.getString("matrix.user_id");
             matrixRoomId = config.getString("matrix.room_id");
             matrixPollDelay = config.getInt("matrix.poll_delay");
+
+            matrixMaxRetries = config.getInt("matrix.max_retries", 3);
+            if (matrixMaxRetries < 0) {
+                matrixMaxRetries = 0;
+            }
+
             matrixCommandPrefix = config.getString("matrix.command_prefix", "!");
-            matrixCommandBlacklist = config.getStringList("matrix.command_blacklist");
+            matrixAvailableCommands = config.getStringList("matrix.available_commands");
             cacheMatrixDisplaynames = config.getBoolean("common.cacheMatrixDisplaynames");
             canUsePapi = config.getBoolean("common.usePlaceholderApi") 
                                 && Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI");
@@ -58,7 +71,6 @@ public class ConfigUtils {
             ConfigurationSection formatSection = config.getConfigurationSection("format");
             if (formatSection != null) format = formatSection.getValues(true);
 
-            Matrix.availableCommands.removeAll(matrixCommandBlacklist);
             return true;
         } catch (Exception e) {
             logger.severe("Failed to load config.yml: " + e.getMessage());

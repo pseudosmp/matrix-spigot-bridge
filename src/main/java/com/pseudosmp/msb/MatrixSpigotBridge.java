@@ -38,10 +38,13 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 	public static ConfigUtils config;
 	public BukkitTask matrixPollerTask = null;
 	public Matrix matrix;
-	
 
 	public Matrix getMatrix() {
 		return matrix;
+	}
+
+	public static JavaPlugin getInstance() {
+		return JavaPlugin.getPlugin(MatrixSpigotBridge.class);
 	}
 
 	public void startBridgeAsync(CommandSender sender, Consumer<Boolean> callback) {
