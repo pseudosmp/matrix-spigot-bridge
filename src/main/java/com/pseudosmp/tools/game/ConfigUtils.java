@@ -26,12 +26,10 @@ public class ConfigUtils {
     public String matrixUserId;
     public String matrixRoomId;
     public int matrixPollDelay;
-    public int matrixMaxRetries;
     public String matrixCommandPrefix;
     public List<String> matrixAvailableCommands;
     public boolean cacheMatrixDisplaynames;
     public boolean canUsePapi;
-    public String matrixMessagePrefix;
     private Map<String, Object> format = Collections.emptyMap();
 
     public ConfigUtils(MatrixSpigotBridge plugin) {
@@ -55,18 +53,11 @@ public class ConfigUtils {
             matrixUserId = config.getString("matrix.user_id");
             matrixRoomId = config.getString("matrix.room_id");
             matrixPollDelay = config.getInt("matrix.poll_delay");
-
-            matrixMaxRetries = config.getInt("matrix.max_retries", 3);
-            if (matrixMaxRetries < 0) {
-                matrixMaxRetries = 0;
-            }
-
             matrixCommandPrefix = config.getString("matrix.command_prefix", "!");
             matrixAvailableCommands = config.getStringList("matrix.available_commands");
             cacheMatrixDisplaynames = config.getBoolean("common.cacheMatrixDisplaynames");
             canUsePapi = config.getBoolean("common.usePlaceholderApi") 
                                 && Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI");
-            matrixMessagePrefix = config.getString("format.matrix_chat");
 
             ConfigurationSection formatSection = config.getConfigurationSection("format");
             if (formatSection != null) format = formatSection.getValues(true);

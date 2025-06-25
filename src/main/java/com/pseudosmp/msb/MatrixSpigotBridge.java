@@ -93,7 +93,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 								String command = body.substring(config.matrixCommandPrefix.length()).trim();
 								matrix.handleCommand(command, sender_address);
 							} else sendMessageToMinecraft(
-								config.matrixMessagePrefix,
+								config.getMessage("matrix_chat"),
 								body, formattedBody,
 								null,
 								sender_address

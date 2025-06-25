@@ -22,9 +22,6 @@ matrix:
     # Lower values will result in faster message delivery, but will increase server load.
     poll_delay: 2
 
-    # Number of retries for every failed request to the matrix server
-    max_retries: 5
-
     # Prefix for commands in the matrix chat
     # Some examples: '!', '.', '/mc ', '!matrix '
     command_prefix: '!'

@@ -1,7 +1,7 @@
 package com.pseudosmp.tools.bridge;
 
 import java.io.BufferedReader;
-import java.io.File;
+
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -12,8 +12,6 @@ import java.util.HashMap;
 
 import javax.net.ssl.HttpsURLConnection;
 
-import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.json.*;
 
 import com.pseudosmp.msb.MatrixSpigotBridge;
@@ -29,7 +27,6 @@ public class Matrix {
 
 	private String room_history_token = "";
 	private String room_filters = "";
-	private String api_endpoint = "";
 
 	private HashMap<String, String> displayname_by_matrixid = new HashMap<String, String>();
 
@@ -56,7 +53,6 @@ public class Matrix {
 			for (String endpoint : endpoints) {
 				try {
 					login_response = new JSONObject(request("POST", endpoint, login_payload));
-					api_endpoint = endpoint; // Save the newest successful endpoint
 					break;
 				} catch (IOException e) {
 					// Accept both 404 and FileNotFoundException as "try next"
@@ -317,85 +313,32 @@ public class Matrix {
 	protected String request(String proto, String url, JSONObject payload, Boolean addBearer) throws Exception {
 		String strpayload = payload.toString();
 		StringBuilder response = new StringBuilder();
-		int attempts = 0;
 
-		while (attempts <= config.matrixMaxRetries) {
-			attempts++;
-			URL url_conn = new URL(server + url);
-			HttpURLConnection con = (HttpURLConnection) url_conn.openConnection();
-			con.setRequestMethod(proto);
+		URL url_conn = new URL(server + url);
+		HttpURLConnection con = (HttpURLConnection) url_conn.openConnection();
+		con.setRequestMethod(proto);
 
-			if (addBearer)
-				con.setRequestProperty("Authorization", "Bearer " + access_token);
+		if (addBearer)
+			con.setRequestProperty("Authorization", "Bearer " + access_token);
 
-			con.setRequestProperty("Content-Type", "application/json; utf-8");
-			con.setRequestProperty("Accept", "application/json");
-			con.setDoOutput(true);
+		con.setRequestProperty("Content-Type", "application/json; utf-8");
+		con.setRequestProperty("Accept", "application/json");
+		con.setDoOutput(true);
 
-			if (!proto.equals("GET")) {
-				try (OutputStream os = con.getOutputStream()) {
-					byte[] input = strpayload.getBytes("utf-8");
-					os.write(input, 0, input.length);
-				}
-			}
-
-			int code = -1;
-			try {
-				code = con.getResponseCode();
-				try (BufferedReader br = new BufferedReader(new InputStreamReader(con.getInputStream(), "utf-8"))) {
-					String responseLine = null;
-					while ((responseLine = br.readLine()) != null) {
-						response.append(responseLine.trim());
-					}
-				}
-
-				switch (code) {
-					case 200: // OK
-					case 201: // Created
-					case 204: // No Content
-						return response.toString(); // Success, return the response
-					case 301: // Moved Permanently
-					case 302: // Found
-					case 307: // Temporary Redirect
-					case 308: // Permanent Redirect
-						throw new IOException("Matrix server responded with a redirect (HTTP " + code + "). " +
-							"Check your Matrix Server URL and ensure it is correct and uses the right protocol (http/https).");
-					case 400: // Bad Request, this is only possible if I have made a mistake in the code
-						throw new IOException("Bad Request: " + response.toString());
-					case 401: // Unauthorized
-					case 403: // Forbidden
-						// Token invalid/expired, try to re-login and retry once
-						plugin.getLogger().warning("Matrix access token invalid or expired (HTTP " + code + "). Attempting to relogin...");
-						if (config != null) {
-							String password = config.getMatrixPassword();
-							if (password != null && !password.isEmpty() && login(password)) {
-								// Save new token to access.yml
-								try {
-									File tokenFile = new File(plugin.getDataFolder(), "access.yml");
-									FileConfiguration tokenConfiguration = YamlConfiguration.loadConfiguration(tokenFile);
-									tokenConfiguration.set("token", getAccessToken());
-									tokenConfiguration.save(tokenFile);
-								} catch (Exception e) {
-									plugin.getLogger().severe("Relogin attempt failed with error: " + e.getMessage());
-									e.printStackTrace();
-								}
-								continue; // Retry with new token
-							}
-						}
-						throw new IOException("Matrix access token invalid or expired (HTTP " + code + ")");
-
-					default:
-						throw new IOException("Unexpected response code: " + code + " - " + response.toString());
-				}
-
-			} catch (IOException e) {
-				if (attempts > config.matrixMaxRetries) {
-					throw e;
-				}
-				continue; // Retry on failure
+		if (!proto.equals("GET")) {
+			try (OutputStream os = con.getOutputStream()) {
+				byte[] input = strpayload.getBytes("utf-8");
+				os.write(input, 0, input.length);
 			}
 		}
-		plugin.getLogger().severe("Matrix request failed after " + attempts + " attempts.");
-		return "";
+
+		try (BufferedReader br = new BufferedReader(new InputStreamReader(con.getInputStream(), "utf-8"))) {
+			String responseLine = null;
+			while ((responseLine = br.readLine()) != null) {
+				response.append(responseLine.trim());
+			}
+		}
+
+		return response.toString();
 	}
 }
