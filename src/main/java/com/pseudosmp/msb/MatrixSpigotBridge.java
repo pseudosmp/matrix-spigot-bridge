@@ -407,7 +407,6 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 		if (config.canUsePapi)
 			format = PlaceholderAPI.setPlaceholders(player, format);
 
-		logger.info("DEBUG: " + defaultPlayername + " > " + message);
 		// Check against regex blacklist
 		for (String regex : config.matrixRegexBlacklist) {
 			if (regex == null || regex.isEmpty()) continue;

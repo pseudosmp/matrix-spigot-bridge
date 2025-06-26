@@ -63,9 +63,9 @@ public class ConfigUtils {
             matrixCommandPrefix = config.getString("matrix.command_prefix", "!");
             matrixAvailableCommands = config.getStringList("matrix.available_commands");
             matrixTopicUpdateInterval = config.getInt("matrix.topic_update_interval", 5);
-            matrixUserBlacklist = config.getStringList("common.user_blacklist");
+            matrixUserBlacklist = config.getStringList("matrix.user_blacklist");
 
-            matrixRegexBlacklist = config.getStringList("common.regex_blacklist");
+            matrixRegexBlacklist = config.getStringList("matrix.regex_blacklist");
             for (String regex : matrixRegexBlacklist) {
                 try {
                     Pattern.compile(regex);

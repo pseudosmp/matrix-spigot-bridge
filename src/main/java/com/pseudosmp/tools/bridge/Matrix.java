@@ -115,7 +115,6 @@ public class Matrix {
 			roomFilters.put("room", room);
 
 			room_filters = URLEncoder.encode(roomFilters.toString(), "UTF-8");
-			plugin.getLogger().info("DEBUG: Matrix room filters -- " + room_filters);
 		} catch (Exception e) {
 			e.printStackTrace();
 			return false;
