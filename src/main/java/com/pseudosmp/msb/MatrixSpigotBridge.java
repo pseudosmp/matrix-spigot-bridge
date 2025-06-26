@@ -6,6 +6,7 @@ import java.util.logging.Level;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
+import java.util.regex.Pattern;
 
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
@@ -37,11 +38,15 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 	private static final int MAX_RELAYED_EVENTS = 120; // Limit memory usage
 	public static ConfigUtils config;
 	public BukkitTask matrixPollerTask = null;
+	public BukkitTask topicUpdaterTask = null;
 	public Matrix matrix;
-	
 
 	public Matrix getMatrix() {
 		return matrix;
+	}
+
+	public static JavaPlugin getInstance() {
+		return JavaPlugin.getPlugin(MatrixSpigotBridge.class);
 	}
 
 	public void startBridgeAsync(CommandSender sender, Consumer<Boolean> callback) {
@@ -55,6 +60,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 			matrixPollerTask = null;
 		}
 		BukkitRunnable poller = new BukkitRunnable(){
+			@Override
 			public void run() {
 				JSONArray messages = new JSONArray();
 
@@ -90,7 +96,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 								String command = body.substring(config.matrixCommandPrefix.length()).trim();
 								matrix.handleCommand(command, sender_address);
 							} else sendMessageToMinecraft(
-								config.matrixMessagePrefix,
+								config.getFormat("matrix_chat"),
 								body, formattedBody,
 								null,
 								sender_address
@@ -179,9 +185,79 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 		});
 	}
 
+	public void updateRoomTopicAsync(Consumer<Boolean> callback) {
+		// Cancel if previous updater task is running
+		if (topicUpdaterTask != null) {
+			try {
+				topicUpdaterTask.cancel();
+			} catch (IllegalStateException ignored) {}
+			topicUpdaterTask = null;
+		}
+		BukkitRunnable roomTopicUpdater = new BukkitRunnable() {
+			@Override
+			public void run() {
+				boolean randomize = config.getFormatSettingBool("randomize_topic");
+				String room_topic = null;
+
+				if (config.matrixRoomTopicPool != null && !config.matrixRoomTopicPool.isEmpty()) {
+					if (randomize) {
+						int idx = (int) (Math.random() * config.matrixRoomTopicPool.size());
+						room_topic = config.matrixRoomTopicPool.get(idx);
+					} else {
+						room_topic = config.matrixRoomTopicPool.get(config.nextTopicIndex);
+						config.nextTopicIndex = (config.nextTopicIndex + 1) % config.matrixRoomTopicPool.size();
+					}
+				}
+
+				final boolean success;
+				if (room_topic != null && !room_topic.isEmpty()) {
+					// Room topic processing
+					if (config.canUsePapi) {
+						room_topic = PlaceholderAPI.setPlaceholders(null, room_topic);
+						room_topic = ChatColor.stripColor(room_topic);
+					}
+					success = matrix.setRoomTopic(room_topic);
+				} else {
+					success = true;
+				}
+				// Notify callback on main thread
+				if (callback != null) {
+					Bukkit.getScheduler().runTask(MatrixSpigotBridge.this, () -> callback.accept(success));
+				}
+			}
+		};
+		if (config.matrixTopicUpdateInterval > 0 && !config.getFormat("room_topic").isEmpty()) {
+			Bukkit.getScheduler().runTask(this, () -> {
+				topicUpdaterTask = roomTopicUpdater.runTaskTimerAsynchronously(this, 0, config.matrixTopicUpdateInterval * 60 * 20);
+			});
+		} else if (config.matrixTopicUpdateInterval == 0) {
+			// If no topic update interval is set, run once immediately
+			topicUpdaterTask = roomTopicUpdater.runTaskAsynchronously(this);
+		} else if (config.matrixTopicUpdateInterval < 0) {
+            // If negative, do not run the task, just callback true
+            if (callback != null) {
+                Bukkit.getScheduler().runTask(this, () -> callback.accept(true));
+            }
+        }
+	}
+
+	public void cancelAllTasks() {
+		if (matrixPollerTask != null) {
+			try {
+				matrixPollerTask.cancel();
+			} catch (IllegalStateException ignored) {}
+			matrixPollerTask = null;
+		}
+		if (topicUpdaterTask != null) {
+			try {
+				topicUpdaterTask.cancel();
+			} catch (IllegalStateException ignored) {}
+			topicUpdaterTask = null;
+		}
+	}
+
 	@Override
 	public void onEnable() {
-		boolean isFirstRun = false;
 		logger = getLogger();
 
 		logger.info("Starting MatrixSpigotBridge");
@@ -202,12 +278,13 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 		getCommand("msb").setTabCompleter(msbCommand);
 		
 		// Connect to Matrix Server
-		if (!isFirstRun) {
+		if (!config.isFirstRun) {
 			startBridgeAsync(null, success -> {
 				if (success) {
-					String start_message = config.getMessage("server.start");
+					String start_message = config.getFormat("server.start");
 					if (start_message != null && !start_message.isEmpty())
 						sendMessageToMatrix(start_message, "", null);
+					updateRoomTopicAsync(success1 -> {});
 				}
 			});
 		}
@@ -304,8 +381,6 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 		input = input.replace("\t", "    ");
 		// Replace newlines with <br>
 		input = input.replace("\n", "<br>");
-		// Optionally, preserve multiple spaces (uncomment if needed)
-		// input = input.replaceAll("  ", "&nbsp;&nbsp;");
 		return input;
 	}
 
@@ -324,22 +399,16 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 			return;
 		}
 
-		String formattedMessage = "";
-
 		if (config.canUsePapi)
 			format = PlaceholderAPI.setPlaceholders(player, format);
 		if (config.getFormatSettingBool("reserialize_player"))
-			formattedMessage = minecraftToMatrixHTML(message);
+			message = minecraftToMatrixHTML(message);
 		message = ChatColor.stripColor(message);
 
-		if (!formattedMessage.isEmpty()) matrix.sendMessage(format
-				.replace("{PLAYERNAME}", (player != null) ? player.getName() : "???")
-				.replace("{MESSAGE}", formattedMessage)
-		);
-		else matrix.sendMessage(format
+		matrix.sendMessage(format
 				.replace("{PLAYERNAME}", (player != null) ? player.getName() : "???")
 				.replace("{MESSAGE}", message)
-			);
+		);
 	}
 
 	public void sendMessageToMinecraft(String format, String message, String formattedMessage, Player player) {
@@ -349,6 +418,17 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 	public void sendMessageToMinecraft(String format, String message, String formattedMessage, Player player, String defaultPlayername) {
 		if (config.canUsePapi)
 			format = PlaceholderAPI.setPlaceholders(player, format);
+
+		// Check against regex blacklist
+		for (String regex : config.matrixRegexBlacklist) {
+			if (regex == null || regex.isEmpty()) continue;
+			if (Pattern.compile(regex).matcher(message).find()) {
+				if (config.logRegexMatches) {
+					logger.info("Matrix: regex matched {" + regex + "} [" + (player != null ? player.getName() : defaultPlayername) + "] " + message);
+				}
+				return;
+			}
+		}
 
 		if (config.getFormatSettingBool("reserialize_matrix") && !formattedMessage.isEmpty())
 			message = matrixHTMLToMinecraft(formattedMessage);
@@ -361,7 +441,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 
 	@Override
 	public void onDisable() {
-		String stop_message = config.getMessage("server.stop");
+		String stop_message = config.getFormat("server.stop");
 		if (stop_message != null && !stop_message.isEmpty() && matrix != null) {
 			Thread shutdownThread = new Thread(() -> {
 				try {
@@ -372,7 +452,8 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 			try {
 				shutdownThread.join(5000); // Wait up to 5 seconds for the message to send
 				if (shutdownThread.isAlive()) {
-					logger.warning("Shutdown message did not send in time, forcefully disabling (ignore the following error)...");
+					logger.warning("Shutdown message did not send in time, forcefully disabling...");
+					cancelAllTasks();
 					shutdownThread.interrupt();
 				}
 			} catch (InterruptedException ignored) {}

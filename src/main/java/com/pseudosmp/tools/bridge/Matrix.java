@@ -1,13 +1,14 @@
 package com.pseudosmp.tools.bridge;
 
 import java.io.BufferedReader;
+
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.util.HashMap;
-import java.util.List;
 
 import javax.net.ssl.HttpsURLConnection;
 
@@ -16,6 +17,7 @@ import org.json.*;
 import com.pseudosmp.msb.MatrixSpigotBridge;
 import com.pseudosmp.tools.game.ConfigUtils;
 import com.pseudosmp.tools.game.ServerInfo;
+import org.bukkit.plugin.java.JavaPlugin;
 
 public class Matrix {
 	private String access_token = "";
@@ -28,11 +30,8 @@ public class Matrix {
 
 	private HashMap<String, String> displayname_by_matrixid = new HashMap<String, String>();
 
-	public static final List<String> availableCommands = new java.util.ArrayList<>(java.util.Arrays.asList(
-		"help", "ping", "list", "tps", "ip"
-	));
-
 	ConfigUtils config = MatrixSpigotBridge.config;
+	JavaPlugin plugin = MatrixSpigotBridge.getInstance();
 
 	HttpsURLConnection url_conn;
 
@@ -48,14 +47,33 @@ public class Matrix {
 			login_payload.put("user", user_id);
 			login_payload.put("password", password);
 
-			JSONObject login_response = new JSONObject(request("POST", "/_matrix/client/api/v1/login", login_payload));
-
+			JSONObject login_response = null;
+			Exception lastException = null;
+			String[] endpoints = {"/_matrix/client/v3/login", "/_matrix/client/r0/login", "/_matrix/client/api/v1/login"};
+			for (String endpoint : endpoints) {
+				try {
+					login_response = new JSONObject(request("POST", endpoint, login_payload));
+					break;
+				} catch (IOException e) {
+					// Accept both 404 and FileNotFoundException as "try next"
+					if (e instanceof java.io.FileNotFoundException ||
+						(e.getMessage() != null && (e.getMessage().contains("404") || e.getMessage().contains("FileNotFoundException")))) {
+						lastException = e;
+						continue;
+					} else {
+						throw e;
+					}
+				}
+			}
+			if (login_response == null) {
+				throw lastException != null ? lastException : new IOException("Matrix login failed: No endpoint succeeded");
+			}
 			access_token = login_response.getString("access_token");
 		} catch (Exception e) {
+			plugin.getLogger().severe("Failed to obtain token: " + e.getMessage());
 			e.printStackTrace();
 			return false;
 		}
-
 		return true;
 	}
 
@@ -73,13 +91,33 @@ public class Matrix {
 
 		this.room_id = room_id;
 
-		// Filters: Only fetch messages from the log room and ignore messages sent by the bot
+		JSONObject roomFilters = new JSONObject();
+		JSONObject room = new JSONObject();
+		JSONObject timeline = new JSONObject();
+
 		try {
-			room_filters = URLEncoder.encode(new JSONObject(
-				"{\"room\": {\"rooms\": [\"" + room_id + "\"], "
-				+ "\"timeline\": {\"types\": [\"m.room.message\"], "
-				+ "\"not_senders\": [\"" + user_id + "\"]}}}"
-			).toString(), "UTF-8");
+			// User Blacklist
+			JSONArray notSenders = new JSONArray();
+			notSenders.put(user_id);
+			if (config.matrixUserBlacklist != null && !config.matrixUserBlacklist.isEmpty()) {
+				for (String user : config.matrixUserBlacklist) {
+					if (!user.equals(user_id)) { // Don't add the bot user to the blacklist again
+						notSenders.put(user);
+					}
+				}
+			}
+			plugin.getLogger().info("Matrix: Messages from these users will not be relayed to Minecraft chat: " + notSenders.toString());
+			// Get only events from this room
+			room.put("rooms", new JSONArray().put(room_id));
+			// Get only message events
+			timeline.put("types", new JSONArray().put("m.room.message"));
+			// Ignore messages sent by these users
+			timeline.put("not_senders", notSenders);
+
+			room.put("timeline", timeline);
+			roomFilters.put("room", room);
+
+			room_filters = URLEncoder.encode(roomFilters.toString(), "UTF-8");
 		} catch (Exception e) {
 			e.printStackTrace();
 			return false;
@@ -202,31 +240,31 @@ public class Matrix {
 		String cmd = parts[0].toLowerCase();
 
 		StringBuilder sb = new StringBuilder();
-		for (String cmdName : availableCommands) {
+		for (String cmdName : config.matrixAvailableCommands) {
 			if (sb.length() > 0) sb.append(", ");
-			sb.append(MatrixSpigotBridge.config.matrixCommandPrefix).append(cmdName);
+			sb.append(config.matrixCommandPrefix).append(cmdName);
 		}
 
 		String COMMANDS = sb.toString();
-		String disabledMessage = config.getMessage("matrix_commands.disabled");
+		String disabledMessage = config.getFormat("matrix_commands.disabled");
 
-		if (MatrixSpigotBridge.config.matrixCommandBlacklist.contains(cmd) && disabledMessage != null) {
+		if (config.matrixAvailableCommands.contains(cmd) && disabledMessage != null) {
 			sendMessage(disabledMessage.replace("{COMMANDS}", COMMANDS));
 			return;
 		}
 
 		switch (cmd) {
 			case "ping":
-				String pingMessage = config.getMessage("matrix_commands.ping");
+				String pingMessage = config.getFormat("matrix_commands.ping");
 				int ping = ping();
 				if (pingMessage != null) {
 					if (ping > 0) sendMessage(pingMessage.replace("{PING}", String.valueOf(ping())));
-					else sendMessage(config.getMessage("matrix_commands.error")
+					else sendMessage(config.getFormat("matrix_commands.error")
 										.replace("{ERROR}", "Could not ping Matrix server."));
 				}
 				break;
 			case "list":
-				String listMessage = config.getMessage("matrix_commands.list");
+				String listMessage = config.getFormat("matrix_commands.list");
 				if (listMessage != null) {
 					try {
 						ServerInfo.PlayerStatus status = ServerInfo.getPlayerList();
@@ -243,33 +281,33 @@ public class Matrix {
 
 						sendMessage(finalListMessage);
 					} catch (Exception e) {
-						sendMessage(config.getMessage("matrix_commands.error")
+						sendMessage(config.getFormat("matrix_commands.error")
 										.replace("{ERROR}", e.getMessage()));
 					}
 				}
 				break;
 			case "tps":
-				String tpsMessage = config.getMessage("matrix_commands.tps");
+				String tpsMessage = config.getFormat("matrix_commands.tps");
 				if (tpsMessage != null) {
 					try {
 						double tps = ServerInfo.getTps();
 						sendMessage(tpsMessage.replace("{TPS}", String.format("%.2f", tps)));
 					} catch (Exception e) {
-						sendMessage(config.getMessage("matrix_commands.error")
+						sendMessage(config.getFormat("matrix_commands.error")
 											.replace("{ERROR}", e.getMessage()));
 					}
 				}
 				break;
 			case "ip":
-				String ipMessage = config.getMessage("matrix_commands.ip");
+				String ipMessage = config.getFormat("matrix_commands.ip");
 				if (ipMessage != null) sendMessage(ipMessage);
 				break;
 			case "help":
-				String helpMessage = config.getMessage("matrix_commands.help");
+				String helpMessage = config.getFormat("matrix_commands.help");
 				if (helpMessage != null) sendMessage(helpMessage.replace("{COMMANDS}", COMMANDS));
 				break;
 			default:
-				String unknownMessage = config.getMessage("matrix_commands.unknown");
+				String unknownMessage = config.getFormat("matrix_commands.unknown");
 				if (unknownMessage != null) sendMessage(unknownMessage.replace("{COMMANDS}", COMMANDS));
 				break;
 		}

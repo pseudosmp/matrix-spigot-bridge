@@ -27,8 +27,22 @@ matrix:
     command_prefix: '!'
 
     # Add a command to this list to disable it in the matrix chat
-    # Currently available commands: help, ping, list, tps, ip
-    command_blacklist: []
+    # For all available commands, please refer to the latest default config.yml
+    available_commands: [help, ping, list, tps, ip]
+
+    # Add user_ids here to blacklist - their messages will not be sent to the Minecraft chat
+    # By default, the bot user configured above is blacklisted. Use the same format as user_id
+    user_blacklist: []
+
+    # Add regular expressions here which when matched in the message body,
+    # the message will not be sent to the Minecraft chat
+    regex_blacklist: []
+
+    # Whether to log the above matched messages in console
+    log_regex_matches: true
+
+    # Update interval for the room topic in minutes. -1 means disabled, 0 means update once on startup/reconnect
+    topic_update_interval: -1
 
 # Message formats
 # PlaceholderAPI is supported! Set usePlaceholderApi to true in the common section to use
@@ -59,6 +73,18 @@ format:
     # Reserialization preserves effects like bold, italic, underline, and strikethrough.
     # Explicitly using minecraft color codes in matrix messages will not be handled.
     reserialize_matrix: true
+
+    # Set the room's topic to cycle through this, changing periodically.
+    # Interval set in matrix.topic_update_interval
+    # Availability of formatting in these messages is subject to client support
+    # (e.g. Element web & desktop doesn't support HTML tags but does support markdown symbols * _ ` >
+    # while Element X on mobile supports neither.)
+    room_topic: 
+        - 'The face is the index of the mind.'
+        - 'The keyboard is mightier than the sword.'
+        - 'What happens in the dark ALWAYS comes to light 🤡'
+    # Instead of changing in order, select randomly from the list above
+    randomize_topic: true
     
     # Server events (start, stop)
     # Minecraft -> Matrix Chat
@@ -68,14 +94,15 @@ format:
         reconnect: '🔄 <i>Reconnected to Matrix!</i>'
 
     # Messages that are replies to commands sent in matrix chat
-    # Please take note of the included placeholders in each message
+    # Please take note of the included placeholders in each message, they will not be available outside of that message
+    # (e.g. {COMMANDS} prints your available commands list, but only in disabled, unknown and help)
     # It is not a requirement to use all included placeholders, but their value will be fetched regardless
     # To not show a message, set its value to empty string. This is not equivalent to blacklisting.
     matrix_commands:
         error: '❗️ Error while executing command: <b>{ERROR}</b>'
         disabled: '❌ Command disabled! <b>Available commands:</b> {COMMANDS}'
         unknown: '❓ Unknown command! <b>Available commands:</b> {COMMANDS}'
-        help: '❓ <b>Available commands:</b> {COMMANDS}' # {COMMANDS} excludes your blacklisted commands
+        help: '❓ <b>Available commands:</b> {COMMANDS}'
         ping: '🏓 Pong! Took {PING}ms'
         list: |
             👥 There are {ONLINE} of a max {MAX} players online:
@@ -94,4 +121,4 @@ common:
     usePlaceholderApi: false
 
     # Do not touch this!
-    configVersion: 2.2.0
+    configVersion: 2.3.0

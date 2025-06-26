@@ -1,7 +1,6 @@
 package com.pseudosmp.tools.game;
 
 import com.pseudosmp.msb.MatrixSpigotBridge;
-import com.pseudosmp.tools.bridge.Matrix;
 
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
@@ -15,28 +14,37 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 import org.bukkit.configuration.file.YamlConfiguration;
 
 public class ConfigUtils {
     private final MatrixSpigotBridge plugin;
     private final Logger logger;
+    public final boolean isFirstRun;
 
     // Persistent config values
     public String matrixServer;
     public String matrixUserId;
     public String matrixRoomId;
     public int matrixPollDelay;
+    public int matrixTopicUpdateInterval;
+    public int nextTopicIndex;
     public String matrixCommandPrefix;
-    public List<String> matrixCommandBlacklist;
+    public List<String> matrixAvailableCommands;
+    public List<String> matrixUserBlacklist;
+    public List<String> matrixRegexBlacklist;
+    public boolean logRegexMatches;
+    public List<String> matrixRoomTopicPool;
     public boolean cacheMatrixDisplaynames;
     public boolean canUsePapi;
-    public String matrixMessagePrefix;
     private Map<String, Object> format = Collections.emptyMap();
 
     public ConfigUtils(MatrixSpigotBridge plugin) {
         this.plugin = plugin;
         this.logger = plugin.getLogger();
+        this.isFirstRun = !plugin.getDataFolder().exists() && !new File(plugin.getDataFolder(), "config.yml").exists();
         checkAndUpdateConfig();
     }
 
@@ -44,21 +52,61 @@ public class ConfigUtils {
         try {
             plugin.reloadConfig();
             FileConfiguration config = plugin.getConfig();
+
             matrixServer = config.getString("matrix.server");
             matrixUserId = config.getString("matrix.user_id");
             matrixRoomId = config.getString("matrix.room_id");
             matrixPollDelay = config.getInt("matrix.poll_delay");
             matrixCommandPrefix = config.getString("matrix.command_prefix", "!");
-            matrixCommandBlacklist = config.getStringList("matrix.command_blacklist");
+            matrixAvailableCommands = config.getStringList("matrix.available_commands");
+            matrixTopicUpdateInterval = config.getInt("matrix.topic_update_interval", 5);
+            matrixRoomTopicPool = config.getStringList("format.room_topic");
+            nextTopicIndex = 0; // Resetting to 0 on each load, will be updated in updateRoomTopicAsync
+            matrixUserBlacklist = config.getStringList("matrix.user_blacklist");
+            matrixRegexBlacklist = config.getStringList("matrix.regex_blacklist");
+            logRegexMatches = config.getBoolean("matrix.log_regex_matches", true);
             cacheMatrixDisplaynames = config.getBoolean("common.cacheMatrixDisplaynames");
+
             canUsePapi = config.getBoolean("common.usePlaceholderApi") 
                                 && Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI");
-            matrixMessagePrefix = config.getString("format.matrix_chat");
 
             ConfigurationSection formatSection = config.getConfigurationSection("format");
             if (formatSection != null) format = formatSection.getValues(true);
 
-            Matrix.availableCommands.removeAll(matrixCommandBlacklist);
+            /* Config Checks */
+
+            // If any of these are empty, why would there be a point to this plugin?
+            if (!isFirstRun) {
+                if (matrixServer == null || matrixServer.isEmpty()) {
+                    logger.severe("Matrix server URL is not set! Please set it and run /msb restart!");
+                    return false;
+                }
+                if (matrixUserId == null || matrixUserId.isEmpty()) {
+                    logger.severe("Matrix user ID is not set! Please set it and run /msb restart!");
+                    return false;
+                }
+                if (matrixRoomId == null || matrixRoomId.isEmpty()) {
+                    logger.severe("Matrix room ID is not set! Please set it and run /msb restart!");
+                    return false;
+                }
+            }
+            // Trailing / will lead the requests to http://example.com//_matrix...
+            while (matrixServer.endsWith("/")) {
+                logger.warning("Matrix server URL should not end with a slash (/). Removing trailing slash automatically.");
+                matrixServer = matrixServer.substring(0, matrixServer.length() - 1);
+                config.set("matrix.server", matrixServer);
+                plugin.saveConfig();
+            }
+            // Regex validation
+            for (String regex : matrixRegexBlacklist) {
+                try {
+                    Pattern.compile(regex);
+                } catch (PatternSyntaxException e) {
+                    logger.warning("Invalid regex found in matrix.regex_blacklist: " + regex);
+                    matrixRegexBlacklist.remove(regex);
+                }
+            }
+
             return true;
         } catch (Exception e) {
             logger.severe("Failed to load config.yml: " + e.getMessage());
@@ -135,7 +183,7 @@ public class ConfigUtils {
         return false; // Default to false if not set or not a boolean
     }
 
-    public String getMessage(String key) {
+    public String getFormat(String key) {
         Object value = format.get(key);
         return value != null ? value.toString() : null;
     }

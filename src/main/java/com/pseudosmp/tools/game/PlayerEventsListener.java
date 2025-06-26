@@ -21,7 +21,7 @@ public class PlayerEventsListener extends BaseListener {
         	message = "";
 
         sendMatrixMessage(
-    		config.getMessage("player.join"),
+    		config.getFormat("player.join"),
     		message,
     		evt.getPlayer()
 		);
@@ -34,7 +34,7 @@ public class PlayerEventsListener extends BaseListener {
         	message = "";
         
         sendMatrixMessage(
-    		config.getMessage("player.quit"),
+    		config.getFormat("player.quit"),
     		message,
     		evt.getPlayer()
 		);
@@ -47,7 +47,7 @@ public class PlayerEventsListener extends BaseListener {
         	message = "";
 
         sendMatrixMessage(
-    		config.getMessage("player.death"),
+    		config.getFormat("player.death"),
     		message,
     		evt.getEntity()
 		);
