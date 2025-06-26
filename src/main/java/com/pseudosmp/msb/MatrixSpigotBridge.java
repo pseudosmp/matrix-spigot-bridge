@@ -196,20 +196,30 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 			@Override
 			public void run() {
 				String room_topic = config.getMessage("room_topic");
-				// Room topic processing
-				if (config.canUsePapi) {
-					room_topic = PlaceholderAPI.setPlaceholders(null, room_topic);
+				final boolean success;
+				if (!room_topic.isEmpty()) {
+					// Room topic processing
+					if (config.canUsePapi) {
+						room_topic = PlaceholderAPI.setPlaceholders(null, room_topic);
+					}
+					success = matrix.setRoomTopic(room_topic);
+				} else {
+					success = true;
 				}
-				boolean success = matrix.setRoomTopic(room_topic);
 				// Notify callback on main thread
 				if (callback != null) {
 					Bukkit.getScheduler().runTask(MatrixSpigotBridge.this, () -> callback.accept(success));
 				}
 			}
 		};
-		Bukkit.getScheduler().runTask(this, () -> {
-			topicUpdaterTask = roomTopicUpdater.runTaskTimerAsynchronously(this, 0, config.matrixTopicUpdateInterval * 60 * 20);
-		});
+		if (config.matrixTopicUpdateInterval > 0 && !config.getMessage("room_topic").isEmpty()) {
+			Bukkit.getScheduler().runTask(this, () -> {
+				topicUpdaterTask = roomTopicUpdater.runTaskTimerAsynchronously(this, 0, config.matrixTopicUpdateInterval * 60 * 20);
+			});
+		} else {
+			// If no topic update interval is set, run once immediately
+			topicUpdaterTask = roomTopicUpdater.runTaskAsynchronously(this);
+		}
 	}
 
 	public void cancelAllTasks() {
@@ -255,9 +265,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 					String start_message = config.getMessage("server.start");
 					if (start_message != null && !start_message.isEmpty())
 						sendMessageToMatrix(start_message, "", null);
-					if (config.matrixTopicUpdateInterval > 0 && !config.getMessage("room_topic").isEmpty()) {
-						updateRoomTopicAsync(success1 -> {});
-					}
+					updateRoomTopicAsync(success1 -> {});
 				}
 			});
 		}
