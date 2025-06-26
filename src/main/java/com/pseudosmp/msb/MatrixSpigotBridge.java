@@ -282,7 +282,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 			startBridgeAsync(null, success -> {
 				if (success) {
 					String start_message = config.getFormat("server.start");
-					if (start_message != null && !start_message.isEmpty())
+					if (!start_message.isEmpty())
 						sendMessageToMatrix(start_message, "", null);
 					updateRoomTopicAsync(success1 -> {});
 				}
@@ -442,7 +442,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 	@Override
 	public void onDisable() {
 		String stop_message = config.getFormat("server.stop");
-		if (stop_message != null && !stop_message.isEmpty() && matrix != null) {
+		if (!stop_message.isEmpty() && matrix != null) {
 			Thread shutdownThread = new Thread(() -> {
 				try {
 					sendMessageToMatrix(stop_message, "", null);

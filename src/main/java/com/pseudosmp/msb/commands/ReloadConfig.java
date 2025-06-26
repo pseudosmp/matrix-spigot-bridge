@@ -27,8 +27,8 @@ public class ReloadConfig implements CommandExecutor {
         String prevPwd = config.getMatrixPassword();
         String prevHomeserver = config.matrixServer;
         String prevRoomID = config.matrixRoomId;
-        String prevRoomTopic = config.getFormat("room_topic");
         List<String> prevUserBlacklist = new ArrayList<>(config.matrixUserBlacklist);
+        List<String> prevRoomTopicPool = new ArrayList<>(config.matrixRoomTopicPool);
         int prevTopicUpdateInterval = config.matrixTopicUpdateInterval;
 
         if (!config.load()) {
@@ -48,8 +48,9 @@ public class ReloadConfig implements CommandExecutor {
             sender.sendMessage("§e[MatrixSpigotBridge] §aUser blacklist changed! §7Please run §a/msb restart §7to apply the new blacklist.");
             return true;
         }
-        
-        if (config.matrixTopicUpdateInterval != prevTopicUpdateInterval || config.getFormat("room_topic") != prevRoomTopic) {
+
+        if (config.matrixTopicUpdateInterval != prevTopicUpdateInterval || 
+                !new HashSet<>(config.matrixRoomTopicPool).equals(new HashSet<>(prevRoomTopicPool))) {
             plugin.updateRoomTopicAsync(success -> {});
         }
 

@@ -127,7 +127,7 @@ public class ConfigUtils {
                 .filter(Player::isOp)
                 .forEach(p -> p.sendMessage("§e[MatrixSpigotBridge] " + firstRun));
         } else if (isOlderConfigVersion()) {
-            logger.warning("Your config.yml is outdated! Please update it to the latest version.");
+            logger.severe("Your config.yml is outdated! Please update it to the latest version.");
             try {
                 File newConfigFile = new File(plugin.getDataFolder(), "config.new.yml");
                 if (newConfigFile.exists()) {
@@ -143,11 +143,11 @@ public class ConfigUtils {
                     in.close();
                     logger.warning("You can find the latest config.yml in the plugin's folder as \"config.new.yml\".");
                 } else {
-                    logger.warning("Resource config.yml not found in jar.");
+                    logger.severe("Resource config.yml not found in jar.");
                 }
             } catch (Exception e) {
-                logger.warning("Failed to save config.new.yml: " + e.getMessage());
-                logger.warning("Manually update by checking https://github.com/pseudosmp/matrix-spigot-bridge/blob/master/src/main/resources/config.yml");
+                logger.severe("Failed to save config.new.yml: " + e.getMessage());
+                logger.severe("Manually update by checking https://github.com/pseudosmp/matrix-spigot-bridge/blob/master/src/main/resources/config.yml");
             }
         }
     }
@@ -156,7 +156,7 @@ public class ConfigUtils {
         String configVersion = plugin.getConfig().getString("common.configVersion", "0.0.0");
         InputStream inputStream = plugin.getResource("config.yml");
         YamlConfiguration resourceConfig = YamlConfiguration.loadConfiguration(new InputStreamReader(inputStream));
-        String pluginVersion = resourceConfig.getString("common.configVersion", "0.0.0");
+        String pluginVersion = resourceConfig.getString("common.configVersion", plugin.getDescription().getVersion());
 
         String[] curr = configVersion.split("\\.");
         String[] target = pluginVersion.split("\\.");
@@ -185,6 +185,6 @@ public class ConfigUtils {
 
     public String getFormat(String key) {
         Object value = format.get(key);
-        return value != null ? value.toString() : null;
+        return value != null ? value.toString() : "";
     }
 }
