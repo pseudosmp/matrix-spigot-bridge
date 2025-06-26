@@ -424,7 +424,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 			if (regex == null || regex.isEmpty()) continue;
 			if (Pattern.compile(regex).matcher(message).find()) {
 				if (config.logRegexMatches) {
-					logger.info("\"" + message + "\" from " + (player != null ? player.getName() : defaultPlayername) + " matched regex " + regex);
+					logger.info("\u001B[90m\"" + message + "\" from " + (player != null ? player.getName() : defaultPlayername) + " matched regex " + regex + "\u001B[0m");
 				}
 				return;
 			}
