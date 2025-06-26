@@ -96,7 +96,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 								String command = body.substring(config.matrixCommandPrefix.length()).trim();
 								matrix.handleCommand(command, sender_address);
 							} else sendMessageToMinecraft(
-								config.getMessage("matrix_chat"),
+								config.getFormat("matrix_chat"),
 								body, formattedBody,
 								null,
 								sender_address
@@ -196,7 +196,19 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 		BukkitRunnable roomTopicUpdater = new BukkitRunnable() {
 			@Override
 			public void run() {
-				String room_topic = config.getMessage("room_topic");
+				boolean randomize = config.getFormatSettingBool("randomize_topic");
+				String room_topic = null;
+
+				if (config.matrixRoomTopicPool != null && !config.matrixRoomTopicPool.isEmpty()) {
+					if (randomize) {
+						int idx = (int) (Math.random() * config.matrixRoomTopicPool.size());
+						room_topic = config.matrixRoomTopicPool.get(idx);
+					} else {
+						room_topic = config.matrixRoomTopicPool.get(config.nextTopicIndex);
+						config.nextTopicIndex = (config.nextTopicIndex + 1) % config.matrixRoomTopicPool.size();
+					}
+				}
+
 				final boolean success;
 				if (room_topic != null && !room_topic.isEmpty()) {
 					// Room topic processing
@@ -213,14 +225,19 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 				}
 			}
 		};
-		if (config.matrixTopicUpdateInterval > 0 && !config.getMessage("room_topic").isEmpty()) {
+		if (config.matrixTopicUpdateInterval > 0 && !config.getFormat("room_topic").isEmpty()) {
 			Bukkit.getScheduler().runTask(this, () -> {
 				topicUpdaterTask = roomTopicUpdater.runTaskTimerAsynchronously(this, 0, config.matrixTopicUpdateInterval * 60 * 20);
 			});
-		} else {
+		} else if (config.matrixTopicUpdateInterval == 0) {
 			// If no topic update interval is set, run once immediately
 			topicUpdaterTask = roomTopicUpdater.runTaskAsynchronously(this);
-		}
+		} else if (config.matrixTopicUpdateInterval < 0) {
+            // If negative, do not run the task, just callback true
+            if (callback != null) {
+                Bukkit.getScheduler().runTask(this, () -> callback.accept(true));
+            }
+        }
 	}
 
 	public void cancelAllTasks() {
@@ -263,7 +280,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 		if (!config.isFirstRun) {
 			startBridgeAsync(null, success -> {
 				if (success) {
-					String start_message = config.getMessage("server.start");
+					String start_message = config.getFormat("server.start");
 					if (start_message != null && !start_message.isEmpty())
 						sendMessageToMatrix(start_message, "", null);
 					updateRoomTopicAsync(success1 -> {});
@@ -427,7 +444,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 
 	@Override
 	public void onDisable() {
-		String stop_message = config.getMessage("server.stop");
+		String stop_message = config.getFormat("server.stop");
 		if (stop_message != null && !stop_message.isEmpty() && matrix != null) {
 			Thread shutdownThread = new Thread(() -> {
 				try {
@@ -438,7 +455,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 			try {
 				shutdownThread.join(5000); // Wait up to 5 seconds for the message to send
 				if (shutdownThread.isAlive()) {
-					logger.warning("Shutdown message did not send in time, forcefully disabling (ignore the following error)...");
+					logger.warning("Shutdown message did not send in time, forcefully disabling...");
 					cancelAllTasks();
 					shutdownThread.interrupt();
 				}

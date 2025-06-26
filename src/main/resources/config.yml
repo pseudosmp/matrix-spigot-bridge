@@ -38,8 +38,8 @@ matrix:
     # the message will not be sent to the Minecraft chat
     regex_blacklist: []
 
-    # Update interval for the room topic in minutes
-    topic_update_interval: 5
+    # Update interval for the room topic in minutes. -1 means disabled, 0 means update once on startup/reconnect
+    topic_update_interval: -1
 
 # Message formats
 # PlaceholderAPI is supported! Set usePlaceholderApi to true in the common section to use
@@ -71,8 +71,14 @@ format:
     # Explicitly using minecraft color codes in matrix messages will not be handled.
     reserialize_matrix: true
 
-    # Set the room's topic to this periodically. Interval set in matrix.topic_update_interval
-    room_topic: 'Welcome to yourserver.minecraft.best!'
+    # Set the room's topic to cycle through this, changing periodically.
+    # Interval set in matrix.topic_update_interval
+    room_topic: 
+        - '<i>The face is the index of the mind.</i>'
+        - 'The keyboard is mightier than the sword.'
+        - 'What happens in the dark <b><i>ALWAYS</i></b> comes to light 🤡'
+    # Instead of changing in order, select randomly from the list above
+    randomize_topic: true
     
     # Server events (start, stop)
     # Minecraft -> Matrix Chat

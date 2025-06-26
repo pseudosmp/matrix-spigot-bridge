@@ -30,10 +30,12 @@ public class ConfigUtils {
     public String matrixRoomId;
     public int matrixPollDelay;
     public int matrixTopicUpdateInterval;
+    public int nextTopicIndex;
     public String matrixCommandPrefix;
     public List<String> matrixAvailableCommands;
     public List<String> matrixUserBlacklist;
     public List<String> matrixRegexBlacklist;
+    public List<String> matrixRoomTopicPool;
     public boolean cacheMatrixDisplaynames;
     public boolean canUsePapi;
     private Map<String, Object> format = Collections.emptyMap();
@@ -57,6 +59,8 @@ public class ConfigUtils {
             matrixCommandPrefix = config.getString("matrix.command_prefix", "!");
             matrixAvailableCommands = config.getStringList("matrix.available_commands");
             matrixTopicUpdateInterval = config.getInt("matrix.topic_update_interval", 5);
+            matrixRoomTopicPool = config.getStringList("format.room_topic");
+            nextTopicIndex = 0; // Resetting to 0 on each load, will be updated in updateRoomTopicAsync
             matrixUserBlacklist = config.getStringList("matrix.user_blacklist");
             matrixRegexBlacklist = config.getStringList("matrix.regex_blacklist");
             cacheMatrixDisplaynames = config.getBoolean("common.cacheMatrixDisplaynames");
@@ -177,7 +181,7 @@ public class ConfigUtils {
         return false; // Default to false if not set or not a boolean
     }
 
-    public String getMessage(String key) {
+    public String getFormat(String key) {
         Object value = format.get(key);
         return value != null ? value.toString() : null;
     }

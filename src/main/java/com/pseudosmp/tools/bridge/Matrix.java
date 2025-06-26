@@ -246,7 +246,7 @@ public class Matrix {
 		}
 
 		String COMMANDS = sb.toString();
-		String disabledMessage = config.getMessage("matrix_commands.disabled");
+		String disabledMessage = config.getFormat("matrix_commands.disabled");
 
 		if (config.matrixAvailableCommands.contains(cmd) && disabledMessage != null) {
 			sendMessage(disabledMessage.replace("{COMMANDS}", COMMANDS));
@@ -255,16 +255,16 @@ public class Matrix {
 
 		switch (cmd) {
 			case "ping":
-				String pingMessage = config.getMessage("matrix_commands.ping");
+				String pingMessage = config.getFormat("matrix_commands.ping");
 				int ping = ping();
 				if (pingMessage != null) {
 					if (ping > 0) sendMessage(pingMessage.replace("{PING}", String.valueOf(ping())));
-					else sendMessage(config.getMessage("matrix_commands.error")
+					else sendMessage(config.getFormat("matrix_commands.error")
 										.replace("{ERROR}", "Could not ping Matrix server."));
 				}
 				break;
 			case "list":
-				String listMessage = config.getMessage("matrix_commands.list");
+				String listMessage = config.getFormat("matrix_commands.list");
 				if (listMessage != null) {
 					try {
 						ServerInfo.PlayerStatus status = ServerInfo.getPlayerList();
@@ -281,33 +281,33 @@ public class Matrix {
 
 						sendMessage(finalListMessage);
 					} catch (Exception e) {
-						sendMessage(config.getMessage("matrix_commands.error")
+						sendMessage(config.getFormat("matrix_commands.error")
 										.replace("{ERROR}", e.getMessage()));
 					}
 				}
 				break;
 			case "tps":
-				String tpsMessage = config.getMessage("matrix_commands.tps");
+				String tpsMessage = config.getFormat("matrix_commands.tps");
 				if (tpsMessage != null) {
 					try {
 						double tps = ServerInfo.getTps();
 						sendMessage(tpsMessage.replace("{TPS}", String.format("%.2f", tps)));
 					} catch (Exception e) {
-						sendMessage(config.getMessage("matrix_commands.error")
+						sendMessage(config.getFormat("matrix_commands.error")
 											.replace("{ERROR}", e.getMessage()));
 					}
 				}
 				break;
 			case "ip":
-				String ipMessage = config.getMessage("matrix_commands.ip");
+				String ipMessage = config.getFormat("matrix_commands.ip");
 				if (ipMessage != null) sendMessage(ipMessage);
 				break;
 			case "help":
-				String helpMessage = config.getMessage("matrix_commands.help");
+				String helpMessage = config.getFormat("matrix_commands.help");
 				if (helpMessage != null) sendMessage(helpMessage.replace("{COMMANDS}", COMMANDS));
 				break;
 			default:
-				String unknownMessage = config.getMessage("matrix_commands.unknown");
+				String unknownMessage = config.getFormat("matrix_commands.unknown");
 				if (unknownMessage != null) sendMessage(unknownMessage.replace("{COMMANDS}", COMMANDS));
 				break;
 		}

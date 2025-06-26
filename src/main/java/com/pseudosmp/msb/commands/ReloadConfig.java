@@ -1,6 +1,11 @@
 package com.pseudosmp.msb.commands;
 
 import com.pseudosmp.msb.MatrixSpigotBridge;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -22,7 +27,8 @@ public class ReloadConfig implements CommandExecutor {
         String prevPwd = config.getMatrixPassword();
         String prevHomeserver = config.matrixServer;
         String prevRoomID = config.matrixRoomId;
-        String prevRoomTopic = config.getMessage("room_topic");
+        String prevRoomTopic = config.getFormat("room_topic");
+        List<String> prevUserBlacklist = new ArrayList<>(config.matrixUserBlacklist);
         int prevTopicUpdateInterval = config.matrixTopicUpdateInterval;
 
         if (!config.load()) {
@@ -38,7 +44,12 @@ public class ReloadConfig implements CommandExecutor {
             return true;
         }
 
-        if (config.matrixTopicUpdateInterval != prevTopicUpdateInterval || config.getMessage("room_topic") != prevRoomTopic) {
+        if (!new HashSet<>(config.matrixUserBlacklist).equals(new HashSet<>(prevUserBlacklist))) {
+            sender.sendMessage("§e[MatrixSpigotBridge] §aUser blacklist changed! §7Please run §a/msb restart §7to apply the new blacklist.");
+            return true;
+        }
+        
+        if (config.matrixTopicUpdateInterval != prevTopicUpdateInterval || config.getFormat("room_topic") != prevRoomTopic) {
             plugin.updateRoomTopicAsync(success -> {});
         }
 
