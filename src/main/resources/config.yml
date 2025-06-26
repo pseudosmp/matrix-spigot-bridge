@@ -38,6 +38,9 @@ matrix:
     # the message will not be sent to the Minecraft chat
     regex_blacklist: []
 
+    # Whether to log the above matched messages in console
+    log_regex_matches: true
+
     # Update interval for the room topic in minutes. -1 means disabled, 0 means update once on startup/reconnect
     topic_update_interval: -1
 

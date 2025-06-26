@@ -35,6 +35,7 @@ public class ConfigUtils {
     public List<String> matrixAvailableCommands;
     public List<String> matrixUserBlacklist;
     public List<String> matrixRegexBlacklist;
+    public boolean logRegexMatches;
     public List<String> matrixRoomTopicPool;
     public boolean cacheMatrixDisplaynames;
     public boolean canUsePapi;
@@ -63,6 +64,7 @@ public class ConfigUtils {
             nextTopicIndex = 0; // Resetting to 0 on each load, will be updated in updateRoomTopicAsync
             matrixUserBlacklist = config.getStringList("matrix.user_blacklist");
             matrixRegexBlacklist = config.getStringList("matrix.regex_blacklist");
+            logRegexMatches = config.getBoolean("matrix.log_regex_matches", true);
             cacheMatrixDisplaynames = config.getBoolean("common.cacheMatrixDisplaynames");
 
             canUsePapi = config.getBoolean("common.usePlaceholderApi") 
