@@ -409,7 +409,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 		// Check against regex blacklist
 		for (String regex : config.matrixRegexBlacklist) {
 			if (message.matches(regex)) {
-				// Message is blacklisted
+				logger.info("\"" + message + "\" from " + (player != null ? player.getName() : defaultPlayername) + " matched regex " + regex);
 				return;
 			}
 		}
