@@ -127,7 +127,7 @@ public class ConfigUtils {
                 .filter(Player::isOp)
                 .forEach(p -> p.sendMessage("§e[MatrixSpigotBridge] " + firstRun));
         } else if (isOlderConfigVersion()) {
-            logger.severe("Your config.yml is outdated! Please update it to the latest version.");
+            logger.severe("Your config.yml is outdated! Please update it to the latest version and run /msb restart!");
             try {
                 File newConfigFile = new File(plugin.getDataFolder(), "config.new.yml");
                 if (newConfigFile.exists()) {
@@ -141,7 +141,8 @@ public class ConfigUtils {
                         java.nio.file.StandardCopyOption.REPLACE_EXISTING
                     );
                     in.close();
-                    logger.warning("You can find the latest config.yml in the plugin's folder as \"config.new.yml\".");
+                    logger.warning("You can find the latest config.yml in the plugin's folder as \"config.new.yml\". "
+                                    + "The plugin may not work as intended if you do not wish to update the config.");
                 } else {
                     logger.severe("Resource config.yml not found in jar.");
                 }
