@@ -51,12 +51,6 @@ public class ConfigUtils {
             FileConfiguration config = plugin.getConfig();
 
             matrixServer = config.getString("matrix.server");
-            if (matrixServer.endsWith("/")) {
-                matrixServer = matrixServer.substring(0, matrixServer.length() - 1);
-                config.set("matrix.server", matrixServer);
-                plugin.saveConfig();
-            }
-
             matrixUserId = config.getString("matrix.user_id");
             matrixRoomId = config.getString("matrix.room_id");
             matrixPollDelay = config.getInt("matrix.poll_delay");
@@ -64,8 +58,40 @@ public class ConfigUtils {
             matrixAvailableCommands = config.getStringList("matrix.available_commands");
             matrixTopicUpdateInterval = config.getInt("matrix.topic_update_interval", 5);
             matrixUserBlacklist = config.getStringList("matrix.user_blacklist");
-
             matrixRegexBlacklist = config.getStringList("matrix.regex_blacklist");
+            cacheMatrixDisplaynames = config.getBoolean("common.cacheMatrixDisplaynames");
+
+            canUsePapi = config.getBoolean("common.usePlaceholderApi") 
+                                && Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI");
+
+            ConfigurationSection formatSection = config.getConfigurationSection("format");
+            if (formatSection != null) format = formatSection.getValues(true);
+
+            /* Config Checks */
+
+            // If any of these are empty, why would there be a point to this plugin?
+            if (!isFirstRun) {
+                if (matrixServer == null || matrixServer.isEmpty()) {
+                    logger.severe("Matrix server URL is not set! Please set it and run /msb restart!");
+                    return false;
+                }
+                if (matrixUserId == null || matrixUserId.isEmpty()) {
+                    logger.severe("Matrix user ID is not set! Please set it and run /msb restart!");
+                    return false;
+                }
+                if (matrixRoomId == null || matrixRoomId.isEmpty()) {
+                    logger.severe("Matrix room ID is not set! Please set it and run /msb restart!");
+                    return false;
+                }
+            }
+            // Trailing / will lead the requests to http://example.com//_matrix...
+            while (matrixServer.endsWith("/")) {
+                logger.warning("Matrix server URL should not end with a slash (/). Removing trailing slash automatically.");
+                matrixServer = matrixServer.substring(0, matrixServer.length() - 1);
+                config.set("matrix.server", matrixServer);
+                plugin.saveConfig();
+            }
+            // Regex validation
             for (String regex : matrixRegexBlacklist) {
                 try {
                     Pattern.compile(regex);
@@ -74,13 +100,6 @@ public class ConfigUtils {
                     matrixRegexBlacklist.remove(regex);
                 }
             }
-
-            cacheMatrixDisplaynames = config.getBoolean("common.cacheMatrixDisplaynames");
-            canUsePapi = config.getBoolean("common.usePlaceholderApi") 
-                                && Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI");
-
-            ConfigurationSection formatSection = config.getConfigurationSection("format");
-            if (formatSection != null) format = formatSection.getValues(true);
 
             return true;
         } catch (Exception e) {

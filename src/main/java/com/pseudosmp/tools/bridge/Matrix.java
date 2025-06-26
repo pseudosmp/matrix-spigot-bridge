@@ -91,8 +91,12 @@ public class Matrix {
 
 		this.room_id = room_id;
 
-		// Filters: Only fetch messages from the log room and ignore messages sent by self and blacklisted users
+		JSONObject roomFilters = new JSONObject();
+		JSONObject room = new JSONObject();
+		JSONObject timeline = new JSONObject();
+
 		try {
+			// User Blacklist
 			JSONArray notSenders = new JSONArray();
 			notSenders.put(user_id);
 			if (config.matrixUserBlacklist != null && !config.matrixUserBlacklist.isEmpty()) {
@@ -102,13 +106,12 @@ public class Matrix {
 					}
 				}
 			}
-			
-			JSONObject roomFilters = new JSONObject();
-			JSONObject room = new JSONObject();
-			JSONObject timeline = new JSONObject();
-
+			plugin.getLogger().info("Matrix: Messages from these users will not be relayed to the Minecraft chat: " + notSenders.toString());
+			// Get only events from this room
 			room.put("rooms", new JSONArray().put(room_id));
+			// Get only message events
 			timeline.put("types", new JSONArray().put("m.room.message"));
+			// Ignore messages sent by these users
 			timeline.put("not_senders", notSenders);
 
 			room.put("timeline", timeline);
