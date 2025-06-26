@@ -76,10 +76,13 @@ format:
 
     # Set the room's topic to cycle through this, changing periodically.
     # Interval set in matrix.topic_update_interval
+    # Availability of formatting in these messages is subject to client support
+    # (e.g. Element web & desktop doesn't support HTML tags but does support markdown symbols * _ ` >
+    # while Element X on mobile supports neither.)
     room_topic: 
-        - '<i>The face is the index of the mind.</i>'
+        - 'The face is the index of the mind.'
         - 'The keyboard is mightier than the sword.'
-        - 'What happens in the dark <b><i>ALWAYS</i></b> comes to light 🤡'
+        - 'What happens in the dark ALWAYS comes to light 🤡'
     # Instead of changing in order, select randomly from the list above
     randomize_topic: true
     
@@ -91,14 +94,15 @@ format:
         reconnect: '🔄 <i>Reconnected to Matrix!</i>'
 
     # Messages that are replies to commands sent in matrix chat
-    # Please take note of the included placeholders in each message
+    # Please take note of the included placeholders in each message, they will not be available outside of that message
+    # (e.g. {COMMANDS} prints your available commands list, but only in disabled, unknown and help)
     # It is not a requirement to use all included placeholders, but their value will be fetched regardless
     # To not show a message, set its value to empty string. This is not equivalent to blacklisting.
     matrix_commands:
         error: '❗️ Error while executing command: <b>{ERROR}</b>'
         disabled: '❌ Command disabled! <b>Available commands:</b> {COMMANDS}'
         unknown: '❓ Unknown command! <b>Available commands:</b> {COMMANDS}'
-        help: '❓ <b>Available commands:</b> {COMMANDS}' # {COMMANDS} prints your available commands list
+        help: '❓ <b>Available commands:</b> {COMMANDS}'
         ping: '🏓 Pong! Took {PING}ms'
         list: |
             👥 There are {ONLINE} of a max {MAX} players online:

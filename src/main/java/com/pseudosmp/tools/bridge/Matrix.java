@@ -106,7 +106,7 @@ public class Matrix {
 					}
 				}
 			}
-			plugin.getLogger().info("Matrix: Messages from these users will not be relayed to the Minecraft chat: " + notSenders.toString());
+			plugin.getLogger().info("Matrix: Messages from these users will not be relayed to Minecraft chat: " + notSenders.toString());
 			// Get only events from this room
 			room.put("rooms", new JSONArray().put(room_id));
 			// Get only message events
