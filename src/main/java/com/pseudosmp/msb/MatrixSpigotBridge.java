@@ -197,7 +197,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 			public void run() {
 				String room_topic = config.getMessage("room_topic");
 				final boolean success;
-				if (!room_topic.isEmpty()) {
+				if (room_topic != null && !room_topic.isEmpty()) {
 					// Room topic processing
 					if (config.canUsePapi) {
 						room_topic = PlaceholderAPI.setPlaceholders(null, room_topic);

@@ -72,7 +72,7 @@ format:
     reserialize_matrix: true
 
     # Set the room's topic to this periodically. Interval set in matrix.topic_update_interval
-    topic: 'Welcome to yourserver.minecraft.best!'
+    room_topic: 'Welcome to yourserver.minecraft.best!'
     
     # Server events (start, stop)
     # Minecraft -> Matrix Chat
