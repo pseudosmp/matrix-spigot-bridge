@@ -229,7 +229,6 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 
 	@Override
 	public void onEnable() {
-		boolean isFirstRun = false;
 		logger = getLogger();
 
 		logger.info("Starting MatrixSpigotBridge");
@@ -250,7 +249,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 		getCommand("msb").setTabCompleter(msbCommand);
 		
 		// Connect to Matrix Server
-		if (!isFirstRun) {
+		if (!config.isFirstRun) {
 			startBridgeAsync(null, success -> {
 				if (success) {
 					String start_message = config.getMessage("server.start");

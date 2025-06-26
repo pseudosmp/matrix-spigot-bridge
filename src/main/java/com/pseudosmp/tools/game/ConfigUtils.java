@@ -20,6 +20,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 public class ConfigUtils {
     private final MatrixSpigotBridge plugin;
     private final Logger logger;
+    public final boolean isFirstRun;
 
     // Persistent config values
     public String matrixServer;
@@ -38,6 +39,7 @@ public class ConfigUtils {
     public ConfigUtils(MatrixSpigotBridge plugin) {
         this.plugin = plugin;
         this.logger = plugin.getLogger();
+        this.isFirstRun = !plugin.getDataFolder().exists() && !new File(plugin.getDataFolder(), "config.yml").exists();
         checkAndUpdateConfig();
     }
 
