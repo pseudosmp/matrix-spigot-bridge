@@ -14,6 +14,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 import org.bukkit.configuration.file.YamlConfiguration;
 
@@ -62,7 +64,17 @@ public class ConfigUtils {
             matrixAvailableCommands = config.getStringList("matrix.available_commands");
             matrixTopicUpdateInterval = config.getInt("matrix.topic_update_interval", 5);
             matrixUserBlacklist = config.getStringList("common.user_blacklist");
+
             matrixRegexBlacklist = config.getStringList("common.regex_blacklist");
+            for (String regex : matrixRegexBlacklist) {
+                try {
+                    Pattern.compile(regex);
+                } catch (PatternSyntaxException e) {
+                    logger.warning("Invalid regex found in matrix.regex_blacklist: " + regex);
+                    matrixRegexBlacklist.remove(regex);
+                }
+            }
+
             cacheMatrixDisplaynames = config.getBoolean("common.cacheMatrixDisplaynames");
             canUsePapi = config.getBoolean("common.usePlaceholderApi") 
                                 && Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI");

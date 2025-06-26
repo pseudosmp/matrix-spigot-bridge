@@ -6,6 +6,7 @@ import java.util.logging.Level;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
+import java.util.regex.Pattern;
 
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
@@ -406,9 +407,11 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 		if (config.canUsePapi)
 			format = PlaceholderAPI.setPlaceholders(player, format);
 
+		logger.info("DEBUG: " + defaultPlayername + " > " + message);
 		// Check against regex blacklist
 		for (String regex : config.matrixRegexBlacklist) {
-			if (message.matches(regex)) {
+			if (regex == null || regex.isEmpty()) continue;
+			if (Pattern.compile(regex).matcher(message).find()) {
 				logger.info("\"" + message + "\" from " + (player != null ? player.getName() : defaultPlayername) + " matched regex " + regex);
 				return;
 			}

@@ -91,13 +91,13 @@ public class Matrix {
 
 		this.room_id = room_id;
 
-		// Filters: Only fetch messages from the log room and ignore messages sent by the bot
+		// Filters: Only fetch messages from the log room and ignore messages sent by self and blacklisted users
 		try {
 			JSONArray notSenders = new JSONArray();
 			notSenders.put(user_id);
 			if (config.matrixUserBlacklist != null && !config.matrixUserBlacklist.isEmpty()) {
 				for (String user : config.matrixUserBlacklist) {
-					if (!user.equals(user_id)) { // Don't add the bot user to the blacklist
+					if (!user.equals(user_id)) { // Don't add the bot user to the blacklist again
 						notSenders.put(user);
 					}
 				}
@@ -115,6 +115,7 @@ public class Matrix {
 			roomFilters.put("room", room);
 
 			room_filters = URLEncoder.encode(roomFilters.toString(), "UTF-8");
+			plugin.getLogger().info("DEBUG: Matrix room filters -- " + room_filters);
 		} catch (Exception e) {
 			e.printStackTrace();
 			return false;
