@@ -193,6 +193,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 			} catch (IllegalStateException ignored) {}
 			topicUpdaterTask = null;
 		}
+		config.nextTopicIndex = 0;
 		BukkitRunnable roomTopicUpdater = new BukkitRunnable() {
 			@Override
 			public void run() {
