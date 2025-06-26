@@ -95,7 +95,7 @@ format:
         error: '❗️ Error while executing command: <b>{ERROR}</b>'
         disabled: '❌ Command disabled! <b>Available commands:</b> {COMMANDS}'
         unknown: '❓ Unknown command! <b>Available commands:</b> {COMMANDS}'
-        help: '❓ <b>Available commands:</b> {COMMANDS}' # {COMMANDS} excludes your blacklisted commands
+        help: '❓ <b>Available commands:</b> {COMMANDS}' # {COMMANDS} prints your available commands list
         ping: '🏓 Pong! Took {PING}ms'
         list: |
             👥 There are {ONLINE} of a max {MAX} players online:

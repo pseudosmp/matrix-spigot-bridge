@@ -214,6 +214,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 					// Room topic processing
 					if (config.canUsePapi) {
 						room_topic = PlaceholderAPI.setPlaceholders(null, room_topic);
+						room_topic = ChatColor.stripColor(room_topic);
 					}
 					success = matrix.setRoomTopic(room_topic);
 				} else {
@@ -398,22 +399,16 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 			return;
 		}
 
-		String formattedMessage = "";
-
 		if (config.canUsePapi)
 			format = PlaceholderAPI.setPlaceholders(player, format);
 		if (config.getFormatSettingBool("reserialize_player"))
-			formattedMessage = minecraftToMatrixHTML(message);
+			message = minecraftToMatrixHTML(message);
 		message = ChatColor.stripColor(message);
 
-		if (!formattedMessage.isEmpty()) matrix.sendMessage(format
-				.replace("{PLAYERNAME}", (player != null) ? player.getName() : "???")
-				.replace("{MESSAGE}", formattedMessage)
-		);
-		else matrix.sendMessage(format
+		matrix.sendMessage(format
 				.replace("{PLAYERNAME}", (player != null) ? player.getName() : "???")
 				.replace("{MESSAGE}", message)
-			);
+		);
 	}
 
 	public void sendMessageToMinecraft(String format, String message, String formattedMessage, Player player) {
