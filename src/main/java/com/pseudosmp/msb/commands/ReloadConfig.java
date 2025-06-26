@@ -22,6 +22,7 @@ public class ReloadConfig implements CommandExecutor {
         String prevPwd = config.getMatrixPassword();
         String prevHomeserver = config.matrixServer;
         String prevRoomID = config.matrixRoomId;
+        String prevRoomTopic = config.getMessage("room_topic");
         int prevTopicUpdateInterval = config.matrixTopicUpdateInterval;
 
         if (!config.load()) {
@@ -37,7 +38,7 @@ public class ReloadConfig implements CommandExecutor {
             return true;
         }
 
-        if (config.matrixTopicUpdateInterval != prevTopicUpdateInterval) {
+        if (config.matrixTopicUpdateInterval != prevTopicUpdateInterval || config.getMessage("room_topic") != prevRoomTopic) {
             plugin.updateRoomTopicAsync(success -> {});
         }
 
