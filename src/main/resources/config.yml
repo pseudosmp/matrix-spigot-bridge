@@ -30,6 +30,17 @@ matrix:
     # For all available commands, please refer to the latest default config.yml
     available_commands: [help, ping, list, tps, ip]
 
+    # Add user_ids here to blacklist - their messages will not be sent to the Minecraft chat
+    # By default, the bot user configured above is blacklisted. Use the same format as user_id
+    user_blacklist: []
+
+    # Add regular expressions here which when matched in the message body,
+    # the message will not be sent to the Minecraft chat
+    regex_blacklist: []
+
+    # Update interval for the room topic in minutes
+    topic_update_interval: 5
+
 # Message formats
 # PlaceholderAPI is supported! Set usePlaceholderApi to true in the common section to use
 # PlaceholderAPI placeholders in the messages. Usage: %papi_placeholder%
@@ -59,6 +70,9 @@ format:
     # Reserialization preserves effects like bold, italic, underline, and strikethrough.
     # Explicitly using minecraft color codes in matrix messages will not be handled.
     reserialize_matrix: true
+
+    # Set the room's topic to this periodically. Interval set in matrix.topic_update_interval
+    topic: 'Welcome to yourserver.minecraft.best!'
     
     # Server events (start, stop)
     # Minecraft -> Matrix Chat

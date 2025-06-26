@@ -26,8 +26,11 @@ public class ConfigUtils {
     public String matrixUserId;
     public String matrixRoomId;
     public int matrixPollDelay;
+    public int matrixTopicUpdateInterval;
     public String matrixCommandPrefix;
     public List<String> matrixAvailableCommands;
+    public List<String> matrixUserBlacklist;
+    public List<String> matrixRegexBlacklist;
     public boolean cacheMatrixDisplaynames;
     public boolean canUsePapi;
     private Map<String, Object> format = Collections.emptyMap();
@@ -55,6 +58,9 @@ public class ConfigUtils {
             matrixPollDelay = config.getInt("matrix.poll_delay");
             matrixCommandPrefix = config.getString("matrix.command_prefix", "!");
             matrixAvailableCommands = config.getStringList("matrix.available_commands");
+            matrixTopicUpdateInterval = config.getInt("matrix.topic_update_interval", 5);
+            matrixUserBlacklist = config.getStringList("common.user_blacklist");
+            matrixRegexBlacklist = config.getStringList("common.regex_blacklist");
             cacheMatrixDisplaynames = config.getBoolean("common.cacheMatrixDisplaynames");
             canUsePapi = config.getBoolean("common.usePlaceholderApi") 
                                 && Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI");

@@ -93,11 +93,28 @@ public class Matrix {
 
 		// Filters: Only fetch messages from the log room and ignore messages sent by the bot
 		try {
-			room_filters = URLEncoder.encode(new JSONObject(
-				"{\"room\": {\"rooms\": [\"" + room_id + "\"], "
-				+ "\"timeline\": {\"types\": [\"m.room.message\"], "
-				+ "\"not_senders\": [\"" + user_id + "\"]}}}"
-			).toString(), "UTF-8");
+			JSONArray notSenders = new JSONArray();
+			notSenders.put(user_id);
+			if (config.matrixUserBlacklist != null && !config.matrixUserBlacklist.isEmpty()) {
+				for (String user : config.matrixUserBlacklist) {
+					if (!user.equals(user_id)) { // Don't add the bot user to the blacklist
+						notSenders.put(user);
+					}
+				}
+			}
+			
+			JSONObject roomFilters = new JSONObject();
+			JSONObject room = new JSONObject();
+			JSONObject timeline = new JSONObject();
+
+			room.put("rooms", new JSONArray().put(room_id));
+			timeline.put("types", new JSONArray().put("m.room.message"));
+			timeline.put("not_senders", notSenders);
+
+			room.put("timeline", timeline);
+			roomFilters.put("room", room);
+
+			room_filters = URLEncoder.encode(roomFilters.toString(), "UTF-8");
 		} catch (Exception e) {
 			e.printStackTrace();
 			return false;
