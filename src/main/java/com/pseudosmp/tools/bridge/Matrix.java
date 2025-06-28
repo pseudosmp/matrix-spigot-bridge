@@ -248,7 +248,7 @@ public class Matrix {
 		String COMMANDS = sb.toString();
 		String disabledMessage = config.getFormat("matrix_commands.disabled");
 
-		if (config.matrixAvailableCommands.contains(cmd) && disabledMessage != null) {
+		if (!config.matrixAvailableCommands.contains(cmd) && disabledMessage != null) {
 			sendMessage(disabledMessage.replace("{COMMANDS}", COMMANDS));
 			return;
 		}
