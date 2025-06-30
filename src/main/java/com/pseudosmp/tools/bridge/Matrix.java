@@ -312,9 +312,9 @@ public class Matrix {
 				break;
 		}
 	}
-	public boolean isValid() {
+	public boolean isConnected() {
 		try {
-			get("/_matrix/client/api/v1/rooms/" + room_id + "/state");
+			get("/_matrix/client/r0/rooms/" + room_id + "/state");
 		} catch (Exception e) {
 			e.printStackTrace();
 			return false;

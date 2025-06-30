@@ -34,23 +34,42 @@ import org.apache.commons.text.StringEscapeUtils;
 
 public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 	private java.util.logging.Logger logger;
+
 	private final Set<String> relayedEventIDs = ConcurrentHashMap.newKeySet();
 	private static final int MAX_RELAYED_EVENTS = 120; // Limit memory usage
+
+	private MinecraftChatListener minecraftChatListener;
+	private PlayerEventsListener playerEventsListener;
+	private BukkitTask establishConnection;
+	public BukkitTask matrixPollerTask;
+	public BukkitTask topicUpdaterTask;
+
 	public static ConfigUtils config;
-	public BukkitTask matrixPollerTask = null;
-	public BukkitTask topicUpdaterTask = null;
 	public Matrix matrix;
 
 	public Matrix getMatrix() {
 		return matrix;
 	}
-
 	public static JavaPlugin getInstance() {
 		return JavaPlugin.getPlugin(MatrixSpigotBridge.class);
 	}
 
 	public void startBridgeAsync(CommandSender sender, Consumer<Boolean> callback) {
 		logger.info("Connecting to Matrix server");
+
+		// Cancel previous connection attempt if running
+		if (establishConnection != null) {
+			logger.warning("Reconnection requested while already connecting. Forcefully reconnecting...");
+			if (sender instanceof Player) {
+				Bukkit.getScheduler().runTask(this, () ->
+					sender.sendMessage("§e[MatrixSpigotBridge] §cThere is already a connection attempt in progress, forcefully reconnecting...")
+				);
+			}
+			try {
+				establishConnection.cancel();
+			} catch (IllegalStateException ignored) {}
+			establishConnection = null;
+		}
 
 		// Cancel previous poller if running
 		if (matrixPollerTask != null) {
@@ -59,6 +78,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 			} catch (IllegalStateException ignored) {}
 			matrixPollerTask = null;
 		}
+
 		BukkitRunnable poller = new BukkitRunnable(){
 			@Override
 			public void run() {
@@ -109,57 +129,71 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 			}
 		};
 
-		Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
+		// Load access token from file or create if it does not exist
+		File tokenFile = new File(getDataFolder(), "access.yml");
+		FileConfiguration tokenConfiguration;
+
+		if (!tokenFile.exists()) {
+			tokenConfiguration = new YamlConfiguration();
+			tokenConfiguration.set("token", "");
+			try {
+				tokenConfiguration.save(tokenFile);
+			} catch (IOException e) {
+				logger.log(Level.SEVERE, "Could not create token file " + tokenFile, e);
+				logger.log(Level.SEVERE, "This will not prevent the bridge from working, but new access tokens will be generated every time.");
+			}
+		} else {
+			tokenConfiguration = YamlConfiguration.loadConfiguration(tokenFile);
+		}
+		String token = tokenConfiguration.getString("token");
+
+		establishConnection = Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
 			HttpsTrustAll.ignoreAllSSL();
 
 			matrix = new Matrix(config.matrixServer, config.matrixUserId);
-			// Init token file
-			File tokenFile = new File(getDataFolder(), "access.yml");
-			FileConfiguration tokenConfiguration;
 
-			if (!tokenFile.exists()) {
-				tokenConfiguration = new YamlConfiguration();
-				tokenConfiguration.set("token", "");
-				try {
-					tokenConfiguration.save(tokenFile);
-				} catch (IOException e) {
-					logger.log(Level.SEVERE, "Could not save config to " + tokenFile, e);
-					logger.log(Level.SEVERE, "This will not prevent the bridge from working, but new access tokens will be generated every time.");
-				}
-			} else {
-				tokenConfiguration = YamlConfiguration.loadConfiguration(tokenFile);
-			}
-
-			//  Check if we already have an access token
-			String token = tokenConfiguration.getString("token");
 			boolean loginSuccess = false;
 			if (token != null && !token.isEmpty()) {
 				logger.info("Access token found in access.yml");
 				matrix.setAccessToken(token);
-				loginSuccess = true;
+				loginSuccess = matrix.joinRoom(config.matrixRoomId);
+				if (!loginSuccess) {
+					logger.warning("Access token is invalid or expired, clearing token...");
+					matrix.setAccessToken("");
+					loginSuccess = tryPasswordLogin(matrix, sender);
+				}
 			} else {
 				logger.info("No access token found, trying to login...");
-				loginSuccess = matrix.login(config.getMatrixPassword());
-				if (loginSuccess) {
-					tokenConfiguration.set("token", matrix.getAccessToken());
-					try {
-						tokenConfiguration.save(tokenFile);
-						logger.info("Token saved in access.yml");
-					} catch (IOException e) {
-						logger.log(Level.SEVERE, "Could not save config to " + tokenFile, e);
-					}
-				}
+				loginSuccess = tryPasswordLogin(matrix, sender);
 			}
 
 			boolean connected = false;
-			if (loginSuccess && matrix.joinRoom(config.matrixRoomId) && matrix.isValid()) {
+			if (loginSuccess && matrix.isConnected()) {
+				tokenConfiguration.set("token", matrix.getAccessToken());
+				try {
+					tokenConfiguration.save(tokenFile);
+				} catch (IOException e) {
+					logger.log(Level.SEVERE, "Could not save token to " + tokenFile, e);
+					logger.log(Level.SEVERE, "This will not prevent the bridge from working, but new access tokens will be generated every time.");
+				}
 				connected = true;
 			}
 
 			if (connected) {
 				logger.info("Connected to Matrix server as " + config.matrixUserId + " in room " + config.matrixRoomId);
-				// Start poller on main thread
+				// Start poller and register events on main thread
 				Bukkit.getScheduler().runTask(this, () -> {
+					try {
+						tokenConfiguration.set("token", matrix.getAccessToken());
+						tokenConfiguration.save(tokenFile);
+						logger.info("Token saved in access.yml. You can now remove the password from config.yml if you wish to.");
+					} catch (IOException e) {
+						logger.log(Level.SEVERE, "Could not save config to " + tokenFile, e);
+					}
+					minecraftChatListener = new MinecraftChatListener(this);
+					playerEventsListener = new PlayerEventsListener(this);
+					getServer().getPluginManager().registerEvents(minecraftChatListener, this);
+					getServer().getPluginManager().registerEvents(playerEventsListener, this);
 					matrixPollerTask = poller.runTaskTimerAsynchronously(this, 0, config.matrixPollDelay * 20);
 				});
 			} else {
@@ -170,6 +204,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 					);
 				}
 			}
+			establishConnection = null; // task is done
 
 			// Notify callback on main thread
 			if (callback != null) {
@@ -183,6 +218,34 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 				);
 			}
 		});
+	}
+
+	private boolean tryPasswordLogin(Matrix matrix, CommandSender sender) {
+		String matrixPassword = config.getMatrixPassword();
+		if (matrixPassword != null && !matrixPassword.isEmpty()) {
+			try {
+				matrix.login(matrixPassword);
+			} catch (Exception e) {
+				logger.log(Level.SEVERE, "Failed to login with password: " + e.getMessage(), e);
+				if (sender instanceof Player) {
+					Bukkit.getScheduler().runTask(this, () ->
+						sender.sendMessage("§e[MatrixSpigotBridge] §cFailed to login with password: " + e.getMessage())
+					);
+				}
+				establishConnection = null; // task is done
+				return false;
+			}
+			return matrix.joinRoom(config.matrixRoomId);
+		} else {
+			logger.severe("No valid access token or password found! Please set a password in config.yml or run /msb restart to generate a new access token.");
+			if (sender != null) {
+				Bukkit.getScheduler().runTask(this, () ->
+					sender.sendMessage("§e[MatrixSpigotBridge] §cNo valid access token or password found! Please set a password in config.yml or run /msb restart to generate a new access token.")
+				);
+			}
+			establishConnection = null; // task is done
+			return false;
+		}
 	}
 
 	public void updateRoomTopicAsync(Consumer<Boolean> callback) {
@@ -270,7 +333,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 			return;
 		}
 
-		if (config.canUsePapi && Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
+		if (config.canUsePapi) {
 			logger.info("PlaceholderAPI found and bound, you can use placeholders in messages");
 		}
 		
@@ -289,9 +352,6 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 				}
 			});
 		}
-		// Register event handlers
-		getServer().getPluginManager().registerEvents(new MinecraftChatListener(this), this);
-		getServer().getPluginManager().registerEvents(new PlayerEventsListener(this), this);
 
 		logger.info("Startup sequence complete!");
 	}
@@ -395,7 +455,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 	}
 
 	public void sendMessageToMatrix(String format, String message, Player player) {
-		if (matrix == null || !matrix.isValid()) {
+		if (matrix == null || !matrix.isConnected()) {
 			// Ignoring for now, not connected to matrix server yet
 			return;
 		}
@@ -406,10 +466,14 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 			message = minecraftToMatrixHTML(message);
 		message = ChatColor.stripColor(message);
 
-		matrix.sendMessage(format
-				.replace("{PLAYERNAME}", (player != null) ? player.getName() : "???")
-				.replace("{MESSAGE}", message)
-		);
+		final String Format = format;
+		final String Message = message;
+		Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
+			matrix.sendMessage(Format
+					.replace("{PLAYERNAME}", (player != null) ? player.getName() : "???")
+					.replace("{MESSAGE}", Message)
+			);
+		});
 	}
 
 	public void sendMessageToMinecraft(String format, String message, String formattedMessage, Player player) {

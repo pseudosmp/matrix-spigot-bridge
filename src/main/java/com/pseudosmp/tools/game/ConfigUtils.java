@@ -48,7 +48,7 @@ public class ConfigUtils {
         checkAndUpdateConfig();
     }
 
-    public Boolean load() {
+    public boolean load() {
         try {
             plugin.reloadConfig();
             FileConfiguration config = plugin.getConfig();
