@@ -415,7 +415,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 	}
 
 	public void sendMessageToMatrix(String format, String message, Player player) {
-		if (matrix == null || !matrix.isConnected()) {
+		if (matrix == null || establishConnection != null) {
 			// Ignoring for now, not connected to matrix server yet
 			return;
 		}
