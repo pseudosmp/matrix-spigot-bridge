@@ -169,13 +169,15 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 
 			boolean connected = false;
 			if (loginSuccess && matrix.isConnected()) {
-				tokenConfiguration.set("token", matrix.getAccessToken());
-				try {
-					tokenConfiguration.save(tokenFile);
-				} catch (IOException e) {
-					logger.log(Level.SEVERE, "Could not save token to " + tokenFile, e);
-					logger.log(Level.SEVERE, "This will not prevent the bridge from working, but new access tokens will be generated every time.");
-				}
+				Bukkit.getScheduler().runTask(this, () -> {
+					tokenConfiguration.set("token", matrix.getAccessToken());
+					try {
+						tokenConfiguration.save(tokenFile);
+						logger.info("Token saved in access.yml. You can now remove the password from config.yml if you wish to.");
+					} catch (IOException e) {
+						logger.log(Level.SEVERE, "Could not save token to " + tokenFile, e);
+					}
+				});
 				connected = true;
 			}
 
@@ -183,13 +185,6 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 				logger.info("Connected to Matrix server as " + config.matrixUserId + " in room " + config.matrixRoomId);
 				// Start poller and register events on main thread
 				Bukkit.getScheduler().runTask(this, () -> {
-					try {
-						tokenConfiguration.set("token", matrix.getAccessToken());
-						tokenConfiguration.save(tokenFile);
-						logger.info("Token saved in access.yml. You can now remove the password from config.yml if you wish to.");
-					} catch (IOException e) {
-						logger.log(Level.SEVERE, "Could not save config to " + tokenFile, e);
-					}
 					minecraftChatListener = new MinecraftChatListener(this);
 					playerEventsListener = new PlayerEventsListener(this);
 					getServer().getPluginManager().registerEvents(minecraftChatListener, this);
@@ -469,7 +464,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 		final String Format = format;
 		final String Message = message;
 		Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
-			matrix.sendMessage(Format
+			matrix.postMessage(Format
 					.replace("{PLAYERNAME}", (player != null) ? player.getName() : "???")
 					.replace("{MESSAGE}", Message)
 			);
@@ -506,6 +501,8 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 
 	@Override
 	public void onDisable() {
+		cancelAllTasks();
+
 		String stop_message = config.getFormat("server.stop");
 		if (!stop_message.isEmpty() && matrix != null) {
 			Thread shutdownThread = new Thread(() -> {
@@ -518,7 +515,6 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 				shutdownThread.join(5000); // Wait up to 5 seconds for the message to send
 				if (shutdownThread.isAlive()) {
 					logger.warning("Shutdown message did not send in time, forcefully disabling...");
-					cancelAllTasks();
 					shutdownThread.interrupt();
 				}
 			} catch (InterruptedException ignored) {}
