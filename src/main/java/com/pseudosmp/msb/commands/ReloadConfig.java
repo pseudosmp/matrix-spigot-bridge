@@ -33,7 +33,7 @@ public class ReloadConfig implements CommandExecutor {
 
         if (!config.load()) {
             sender.sendMessage("§e[MatrixSpigotBridge] §cFailed to reload configuration. Please check the console for errors.");
-            return false;
+            return true;
         }
 
         if (!config.matrixUserId.equals(prevUser)

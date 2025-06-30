@@ -86,7 +86,7 @@ public class Matrix {
 	}
 
 	public boolean joinRoom(String room_id) {
-		if (user_id.equals(""))
+		if (user_id.isEmpty())
 			return false;
 
 		this.room_id = room_id;
@@ -145,8 +145,9 @@ public class Matrix {
 	}
 
 	public boolean postMessage(String formattedBody) {
-		if (room_id.equals("") || access_token.equals(""))
+		if (room_id.isEmpty() || access_token.isEmpty()) {
 			return false;
+		}
 
 		String htmlBody = MatrixSpigotBridge.yamlEscapeToHtml(formattedBody);
 
@@ -214,7 +215,7 @@ public class Matrix {
 	}
 
 	public boolean setRoomTopic(String topic) {
-		if (room_id.equals("") || access_token.equals("")) {
+		if (room_id.isEmpty() || access_token.isEmpty()) {
 			return false;
 		}
 		try {
@@ -233,7 +234,30 @@ public class Matrix {
 		}
 	}
 
-	public void handleCommand(String command, String sender_address) {
+	public boolean addReaction(String event_id, String reaction) {
+		if (room_id.isEmpty() || access_token.isEmpty()) {
+			return false;
+		}
+		try {
+			JSONObject payload = new JSONObject();
+			payload.put("m.relates_to", new JSONObject()
+				.put("rel_type", "m.annotation")
+				.put("event_id", event_id)
+				.put("key", reaction)
+			);
+			request(
+				"PUT",
+				"/_matrix/client/r0/rooms/" + room_id + "/send/m.reaction/" + URLEncoder.encode(event_id, "UTF-8"),
+				payload
+			);
+			return true;
+		} catch (Exception e) {
+			e.printStackTrace();
+			return false;
+		}
+	}
+
+	public void handleCommand(String command, String sender_address, String event_id) {
 		if (command == null || command.trim().isEmpty()) return;
 
 		String[] parts = command.trim().split("\\s+");
@@ -246,12 +270,6 @@ public class Matrix {
 		}
 
 		String COMMANDS = sb.toString();
-		String disabledMessage = config.getFormat("matrix_commands.disabled");
-
-		if (!config.matrixAvailableCommands.contains(cmd) && disabledMessage != null) {
-			postMessage(disabledMessage.replace("{COMMANDS}", COMMANDS));
-			return;
-		}
 
 		switch (cmd) {
 			case "ping":
@@ -265,7 +283,7 @@ public class Matrix {
 				break;
 			case "list":
 				String listMessage = config.getFormat("matrix_commands.list");
-				if (listMessage != null) {
+				if (listMessage != null && !listMessage.isEmpty()) {
 					try {
 						ServerInfo.PlayerStatus status = ServerInfo.getPlayerList();
 						StringBuilder names = new StringBuilder();
@@ -281,6 +299,7 @@ public class Matrix {
 
 						postMessage(finalListMessage);
 					} catch (Exception e) {
+						addReaction(event_id, "⚠️");
 						postMessage(config.getFormat("matrix_commands.error")
 										.replace("{ERROR}", e.getMessage()));
 					}
@@ -288,11 +307,12 @@ public class Matrix {
 				break;
 			case "tps":
 				String tpsMessage = config.getFormat("matrix_commands.tps");
-				if (tpsMessage != null) {
+				if (tpsMessage != null && !tpsMessage.isEmpty()) {
 					try {
 						double tps = ServerInfo.getTps();
 						postMessage(tpsMessage.replace("{TPS}", String.format("%.2f", tps)));
 					} catch (Exception e) {
+						addReaction(event_id, "⚠️");
 						postMessage(config.getFormat("matrix_commands.error")
 											.replace("{ERROR}", e.getMessage()));
 					}
@@ -300,15 +320,18 @@ public class Matrix {
 				break;
 			case "ip":
 				String ipMessage = config.getFormat("matrix_commands.ip");
-				if (ipMessage != null) postMessage(ipMessage);
+				if (ipMessage != null && !ipMessage.isEmpty()) postMessage(ipMessage);
 				break;
 			case "help":
 				String helpMessage = config.getFormat("matrix_commands.help");
-				if (helpMessage != null) postMessage(helpMessage.replace("{COMMANDS}", COMMANDS));
+				if (helpMessage != null && !helpMessage.isEmpty()) postMessage(helpMessage.replace("{COMMANDS}", COMMANDS));
 				break;
 			default:
 				String unknownMessage = config.getFormat("matrix_commands.unknown");
-				if (unknownMessage != null) postMessage(unknownMessage.replace("{COMMANDS}", COMMANDS));
+				if (unknownMessage != null && !unknownMessage.isEmpty()) {
+					addReaction(event_id, "❓");
+					postMessage(unknownMessage.replace("{COMMANDS}", COMMANDS));
+				}
 				break;
 		}
 	}

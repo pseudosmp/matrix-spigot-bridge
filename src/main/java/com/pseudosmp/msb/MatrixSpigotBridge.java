@@ -32,6 +32,8 @@ import com.pseudosmp.tools.game.ConfigUtils;
 
 import org.apache.commons.text.StringEscapeUtils;
 
+import org.bstats.bukkit.Metrics;
+
 public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 	private java.util.logging.Logger logger;
 
@@ -41,11 +43,11 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 	private MinecraftChatListener minecraftChatListener;
 	private PlayerEventsListener playerEventsListener;
 	private BukkitTask establishConnection;
-	public BukkitTask matrixPollerTask;
-	public BukkitTask topicUpdaterTask;
+	private BukkitTask matrixPollerTask;
+	private BukkitTask topicUpdaterTask;
 
 	public static ConfigUtils config;
-	public Matrix matrix;
+	private Matrix matrix;
 
 	public Matrix getMatrix() {
 		return matrix;
@@ -114,12 +116,11 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 
 							if (body.startsWith(config.matrixCommandPrefix)) {
 								String command = body.substring(config.matrixCommandPrefix.length()).trim();
-								matrix.handleCommand(command, sender_address);
+								matrix.handleCommand(command, sender_address, event_id);
 							} else sendMessageToMinecraft(
 								config.getFormat("matrix_chat"),
-								body, formattedBody,
-								null,
-								sender_address
+								event_id, body, formattedBody,
+								null, sender_address
 							);
 						});
 					}
@@ -315,42 +316,6 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 		}
 	}
 
-	@Override
-	public void onEnable() {
-		logger = getLogger();
-
-		logger.info("Starting MatrixSpigotBridge");
-		config = new ConfigUtils(this);
-
-		if (!config.load()) {
-			logger.severe("Failed to load config.yml! Please check the console for errors.");
-			Bukkit.getPluginManager().disablePlugin(this);
-			return;
-		}
-
-		if (config.canUsePapi) {
-			logger.info("PlaceholderAPI found and bound, you can use placeholders in messages");
-		}
-		
-		MsbCommand msbCommand = new MsbCommand(this);
-		getCommand("msb").setExecutor(msbCommand);
-		getCommand("msb").setTabCompleter(msbCommand);
-		
-		// Connect to Matrix Server
-		if (!config.isFirstRun) {
-			startBridgeAsync(null, success -> {
-				if (success) {
-					String start_message = config.getFormat("server.start");
-					if (!start_message.isEmpty())
-						sendMessageToMatrix(start_message, "", null);
-					updateRoomTopicAsync(success1 -> {});
-				}
-			});
-		}
-
-		logger.info("Startup sequence complete!");
-	}
-
 	public static String minecraftToMatrixHTML(String input) {
 		if (input == null) return null;
 		StringBuilder out = new StringBuilder();
@@ -471,11 +436,11 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 		});
 	}
 
-	public void sendMessageToMinecraft(String format, String message, String formattedMessage, Player player) {
-		sendMessageToMinecraft(format, message, formattedMessage, player, "???");
+	public void sendMessageToMinecraft(String format, String event_id, String message, String formattedMessage, Player player) {
+		sendMessageToMinecraft(format, event_id, message, formattedMessage, player, "???");
 	}
 
-	public void sendMessageToMinecraft(String format, String message, String formattedMessage, Player player, String defaultPlayername) {
+	public void sendMessageToMinecraft(String format, String event_id, String message, String formattedMessage, Player player, String defaultPlayername) {
 		if (config.canUsePapi)
 			format = PlaceholderAPI.setPlaceholders(player, format);
 
@@ -483,11 +448,32 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 		for (String regex : config.matrixRegexBlacklist) {
 			if (regex == null || regex.isEmpty()) continue;
 			if (Pattern.compile(regex).matcher(message).find()) {
-				if (config.logRegexMatches) {
-					logger.info("Matrix: regex matched {" + regex + "} [" + (player != null ? player.getName() : defaultPlayername) + "] " + message);
-				}
+				logger.info(
+					"Matrix: regex matched {" + regex + "} [" + 
+					(player != null ? player.getName() : defaultPlayername) + "] " + message
+				);
+				matrix.addReaction(event_id, "❗");
 				return;
 			}
+		}
+		// Check against character and line limit
+		if (config.matrixCharLimit > 0 && message.length() > config.matrixCharLimit) {
+			logger.info(
+				"Matrix: message too long [" +
+				(player != null ? player.getName() : defaultPlayername) + "] " +
+				message.replace("\n", " ").substring(0, 64) + "..."
+			);
+			matrix.addReaction(event_id, "❗");
+			return;
+		}
+		if (config.matrixLineLimit > 0 && message.split("\n").length > config.matrixLineLimit) {
+			logger.info(
+				"Matrix: message too long [" +
+				(player != null ? player.getName() : defaultPlayername) + "] " +
+				message.replace("\n", " ").substring(0, Math.min(64, message.length())) + "..."
+			);
+			matrix.addReaction(event_id, "❗");
+			return;
 		}
 
 		if (config.getFormatSettingBool("reserialize_matrix") && !formattedMessage.isEmpty())
@@ -497,6 +483,44 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 			.replace("{MATRIXNAME}", (player != null) ? player.getName() : defaultPlayername)
 			.replace("{MESSAGE}", message)
 		);
+	}
+
+	@Override
+	public void onEnable() {
+		logger = getLogger();
+
+		logger.info("Starting MatrixSpigotBridge");
+		config = new ConfigUtils(this);
+
+		// Register commands
+		MsbCommand msbCommand = new MsbCommand(this);
+		getCommand("msb").setExecutor(msbCommand);
+		getCommand("msb").setTabCompleter(msbCommand);
+
+		if (!config.load()) {
+			logger.severe("Failed to load config.yml! Please check the console for errors.");
+			return;
+		}
+
+		if (config.bstatsConsent) {
+			@SuppressWarnings("unused")
+			Metrics metrics = new Metrics(this, 26323);
+			logger.info("bstats for MatrixSpigotBridge has been enabled. You can opt-out by disabling bstats in the plugin config.");
+		}
+		
+		// Connect to Matrix Server
+		if (!config.isFirstRun) {
+			startBridgeAsync(null, success -> {
+				if (success) {
+					String start_message = config.getFormat("server.start");
+					if (!start_message.isEmpty())
+						sendMessageToMatrix(start_message, "", null);
+					updateRoomTopicAsync(success1 -> {});
+				}
+			});
+		}
+
+		logger.info("Startup sequence complete!");
 	}
 
 	@Override

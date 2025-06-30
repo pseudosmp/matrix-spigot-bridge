@@ -3,6 +3,19 @@
 # Note: If this ->❤️<- doesnt look like a red heart, please use a UTF-8 capable editor to edit this file.
 # If you are using an incompatible editor, you may not be able to use symbols/emojis in the config.
 
+common:
+    # Do not touch this!
+    configVersion: 2.3.2
+
+    # Set this value to true to use placeholders in all formats messages 
+    # IMPORTANT: Requires PlaceholderAPI to be installed if set to true!
+    usePlaceholderApi: false
+
+    # By default, this plugin uses bstats for collecting anonymous data on
+    # how many servers this plugin is running on and how many players are playing.
+    # Set this to false to opt out and disable bstats for this plugin
+    bstats_consent: true
+
 # Matrix server / bot account configuration
 matrix:
     # Matrix homeserver base url
@@ -22,12 +35,18 @@ matrix:
     # Lower values will result in faster message delivery, but will increase server load.
     poll_delay: 2
 
+    # Set this value to false if you want the plugin to always fetch displaynames from matrix server.
+    # Setting to true will let the server remember fetched diplaynames until the server restarts.
+    # This will reduce the number of requests to the matrix server, but may cause issues if displaynames change often
+    cache_displaynames: true
+
     # Prefix for commands in the matrix chat
     # Some examples: '!', '.', '/mc ', '!matrix '
     command_prefix: '!'
 
     # Add a command to this list to disable it in the matrix chat
     # For all available commands, please refer to the latest default config.yml
+    # Commands not in this list will be considered unknown.
     available_commands: [help, ping, list, tps, ip]
 
     # Add user_ids here to blacklist - their messages will not be sent to the Minecraft chat
@@ -38,8 +57,11 @@ matrix:
     # the message will not be sent to the Minecraft chat
     regex_blacklist: []
 
-    # Whether to log the above matched messages in console
-    log_regex_matches: true
+    # Message body exceeding this character limit will not be sent to the Minecraft chat. -1 to disable limit
+    character_limit: 256
+
+    # Message body exceeding these many new lines will not be sent to the Minecraft chat. -1 to disable limit
+    line_limit: 8
 
     # Update interval for the room topic in minutes. -1 means disabled, 0 means update once on startup/reconnect
     topic_update_interval: -1
@@ -95,12 +117,11 @@ format:
 
     # Messages that are replies to commands sent in matrix chat
     # Please take note of the included placeholders in each message, they will not be available outside of that message
-    # (e.g. {COMMANDS} prints your available commands list, but only in disabled, unknown and help)
+    # (e.g. {COMMANDS} prints your available commands list, but only in unknown and help)
     # It is not a requirement to use all included placeholders, but their value will be fetched regardless
     # To not show a message, set its value to empty string. This is not equivalent to blacklisting.
     matrix_commands:
         error: '❗️ Error while executing command: <b>{ERROR}</b>'
-        disabled: '❌ Command disabled! <b>Available commands:</b> {COMMANDS}'
         unknown: '❓ Unknown command! <b>Available commands:</b> {COMMANDS}'
         help: '❓ <b>Available commands:</b> {COMMANDS}'
         ping: '🏓 Pong! Took {PING}ms'
@@ -109,16 +130,3 @@ format:
             {NAMES}
         tps: '⏱️ Server TPS: {TPS}'
         ip: '🌐 Server IP: yourserver.minecraft.best'
-
-common:
-    # Set this value to false if you want the plugin to always fetch displaynames from matrix server.
-    # Setting to true will let the server remember fetched diplaynames until the server restarts.
-    # This will reduce the number of requests to the matrix server, but may cause issues if displaynames change often
-    cacheMatrixDisplaynames: true
-
-    # Set this value to true to use placeholders in all formats messages 
-    # IMPORTANT: Requires PlaceholderAPI to be installed if set to true!
-    usePlaceholderApi: false
-
-    # Do not touch this!
-    configVersion: 2.3.0

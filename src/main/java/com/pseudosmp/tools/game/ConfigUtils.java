@@ -25,17 +25,19 @@ public class ConfigUtils {
     public final boolean isFirstRun;
 
     // Persistent config values
+    public boolean bstatsConsent;
     public String matrixServer;
     public String matrixUserId;
     public String matrixRoomId;
+    public String matrixCommandPrefix;
     public int matrixPollDelay;
     public int matrixTopicUpdateInterval;
     public int nextTopicIndex;
-    public String matrixCommandPrefix;
+    public int matrixCharLimit;
+    public int matrixLineLimit;
     public List<String> matrixAvailableCommands;
     public List<String> matrixUserBlacklist;
     public List<String> matrixRegexBlacklist;
-    public boolean logRegexMatches;
     public List<String> matrixRoomTopicPool;
     public boolean cacheMatrixDisplaynames;
     public boolean canUsePapi;
@@ -53,19 +55,21 @@ public class ConfigUtils {
             plugin.reloadConfig();
             FileConfiguration config = plugin.getConfig();
 
+            bstatsConsent = config.getBoolean("common.bstats_consent", true);
             matrixServer = config.getString("matrix.server");
             matrixUserId = config.getString("matrix.user_id");
             matrixRoomId = config.getString("matrix.room_id");
             matrixPollDelay = config.getInt("matrix.poll_delay");
             matrixCommandPrefix = config.getString("matrix.command_prefix", "!");
             matrixAvailableCommands = config.getStringList("matrix.available_commands");
-            matrixTopicUpdateInterval = config.getInt("matrix.topic_update_interval", 5);
+            matrixTopicUpdateInterval = config.getInt("matrix.topic_update_interval", -1);
             matrixRoomTopicPool = config.getStringList("format.room_topic");
             nextTopicIndex = 0; // Resetting to 0 on each load, will be updated in updateRoomTopicAsync
             matrixUserBlacklist = config.getStringList("matrix.user_blacklist");
             matrixRegexBlacklist = config.getStringList("matrix.regex_blacklist");
-            logRegexMatches = config.getBoolean("matrix.log_regex_matches", true);
-            cacheMatrixDisplaynames = config.getBoolean("common.cacheMatrixDisplaynames");
+            matrixCharLimit = config.getInt("matrix.character_limit", 256);
+            matrixLineLimit = config.getInt("matrix.line_limit", 8);
+            cacheMatrixDisplaynames = config.getBoolean("matrix.cache_displaynames", true);
 
             canUsePapi = config.getBoolean("common.usePlaceholderApi") 
                                 && Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI");
@@ -106,7 +110,17 @@ public class ConfigUtils {
                     matrixRegexBlacklist.remove(regex);
                 }
             }
-
+            // Moving this here from onEnable()
+            if (canUsePapi) {
+                logger.info("PlaceholderAPI found and bound, you can use placeholders in messages");
+            }
+            // bstats consent disclaimer
+            if (bstatsConsent && isFirstRun) {
+                logger.warning("bstats Plugin Analytics is enabled by default. " + 
+                    "If you wish to opt-out and defer it from loading even once, set bstats_consent to false in the config "+
+                    "before the next restart. This warning will only be shown once."
+                );
+            }
             return true;
         } catch (Exception e) {
             logger.severe("Failed to load config.yml: " + e.getMessage());
