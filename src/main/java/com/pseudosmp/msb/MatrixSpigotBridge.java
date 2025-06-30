@@ -505,9 +505,16 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 
 		String stop_message = config.getFormat("server.stop");
 		if (!stop_message.isEmpty() && matrix != null) {
+			if (config.canUsePapi)
+				stop_message = PlaceholderAPI.setPlaceholders(null, stop_message);
+			if (config.getFormatSettingBool("reserialize_player"))
+				stop_message = minecraftToMatrixHTML(stop_message);
+			stop_message = ChatColor.stripColor(stop_message);
+
+			final String msg = stop_message;
 			Thread shutdownThread = new Thread(() -> {
 				try {
-					sendMessageToMatrix(stop_message, "", null);
+					matrix.postMessage(msg);
 				} catch (Exception ignored) {}
 			});
 			shutdownThread.start();
