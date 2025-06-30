@@ -5,7 +5,7 @@
 
 common:
     # Do not touch this!
-    configVersion: 2.3.2
+    configVersion: 2.4.0
 
     # Set this value to true to use placeholders in all formats messages 
     # IMPORTANT: Requires PlaceholderAPI to be installed if set to true!
