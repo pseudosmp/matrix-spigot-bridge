@@ -1,7 +1,6 @@
 package com.pseudosmp.tools.bridge;
 
 import java.io.BufferedReader;
-
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -9,6 +8,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.util.HashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 import javax.net.ssl.HttpsURLConnection;
 
@@ -28,6 +28,9 @@ public class Matrix {
 	private String room_history_token = "";
 	private String room_filters = "";
 
+    private static final long TXN_EPOCH = System.currentTimeMillis();
+    private static final AtomicLong TXN_SEQ = new AtomicLong(0);
+
 	private HashMap<String, String> displayname_by_matrixid = new HashMap<String, String>();
 
 	ConfigUtils config = MatrixSpigotBridge.config;
@@ -40,6 +43,11 @@ public class Matrix {
 		this.server = server;
 	}
 
+    private static String nextTxnId() {
+        long seq = TXN_SEQ.incrementAndGet();
+        return Long.toString(TXN_EPOCH, 36) + "-" + Long.toString(seq, 36);
+    }
+
 	public boolean login(String password) {
 		try {
 			JSONObject login_payload = new JSONObject();
@@ -49,10 +57,10 @@ public class Matrix {
 
 			JSONObject login_response = null;
 			Exception lastException = null;
-			String[] endpoints = {"/_matrix/client/v3/login", "/_matrix/client/r0/login", "/_matrix/client/api/v1/login"};
+			String[] endpoints = {"v3", "r0", "api/v1"};
 			for (String endpoint : endpoints) {
 				try {
-					login_response = new JSONObject(request("POST", endpoint, login_payload));
+					login_response = new JSONObject(request("POST", "/_matrix/client/" + endpoint + "/login", login_payload));
 					break;
 				} catch (IOException e) {
 					// Accept both 404 and FileNotFoundException as "try next"
@@ -150,7 +158,6 @@ public class Matrix {
 		}
 
 		String htmlBody = MatrixSpigotBridge.yamlEscapeToHtml(formattedBody);
-
 		String plainBody = MatrixSpigotBridge.stripHtmlTags(htmlBody);
 
 		JSONObject payload = new JSONObject();
@@ -162,7 +169,9 @@ public class Matrix {
 		}
 
 		try {
-			request("POST", "/_matrix/client/api/v1/rooms/" + room_id + "/send/m.room.message", payload);
+			String txnId = nextTxnId();
+			String endpoint = "/_matrix/client/r0/rooms/" + room_id + "/send/m.room.message/" + txnId;
+			request("PUT", endpoint, payload);
 		} catch (Exception e) {
 			e.printStackTrace();
 			return false;
@@ -245,11 +254,10 @@ public class Matrix {
 				.put("event_id", event_id)
 				.put("key", reaction)
 			);
-			request(
-				"PUT",
-				"/_matrix/client/r0/rooms/" + room_id + "/send/m.reaction/" + URLEncoder.encode(event_id, "UTF-8"),
-				payload
-			);
+
+            String txnId = nextTxnId();
+            String endpoint = "/_matrix/client/r0/rooms/" + room_id + "/send/m.reaction/" + txnId;
+			request("PUT", endpoint, payload);
 			return true;
 		} catch (Exception e) {
 			e.printStackTrace();
