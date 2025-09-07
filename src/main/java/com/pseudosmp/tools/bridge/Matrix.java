@@ -76,7 +76,7 @@ public class Matrix {
 		return access_token;
 	}
 
-	public boolean joinRoom(String room_id) throws Exception {
+	public boolean joinRoom(String room_id) {
 		if (user_id.isEmpty())
 			return false;
 
@@ -96,20 +96,18 @@ public class Matrix {
 				try {
 					request("POST", "/_matrix/client/v3/rooms/" + room_id + "/join", new JSONObject());
 					plugin.getLogger().info("[MatrixSpigotBridge] Joined room " + room_id);
-				} catch (IOException e) {
+				} catch (Exception e) {
 					plugin.getLogger().warning("[MatrixSpigotBridge] Failed to join room: " + e.getMessage());
-					throw new Exception("Unable to join room " + room_id, e);
 				}
 			}
-		} catch (IOException e) {
+		} catch (Exception e) {
 			// If membership lookup fails, attempt join anyway
 			plugin.getLogger().info("[MatrixSpigotBridge] Membership check failed, attempting join...");
 			try {
 				request("POST", "/_matrix/client/v3/rooms/" + room_id + "/join", new JSONObject());
 				plugin.getLogger().info("[MatrixSpigotBridge] Joined room " + room_id);
-			} catch (IOException e2) {
+			} catch (Exception e2) {
 				plugin.getLogger().warning("[MatrixSpigotBridge] Failed to join room: " + e2.getMessage());
-				throw new Exception("Unable to join room " + room_id, e2);
 			}
 		}
 
