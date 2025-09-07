@@ -174,7 +174,8 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 					tokenConfiguration.set("token", matrix.getAccessToken());
 					try {
 						tokenConfiguration.save(tokenFile);
-						logger.info("Token saved in access.yml. You can now remove the password from config.yml if you wish to.");
+						if (config.getMatrixPassword() != null && !config.getMatrixPassword().isEmpty())
+							logger.info("Logged in with token and saved it to access.yml. You can now remove the password from config.yml if you wish to.");
 					} catch (IOException e) {
 						logger.log(Level.SEVERE, "Could not save token to " + tokenFile, e);
 					}
