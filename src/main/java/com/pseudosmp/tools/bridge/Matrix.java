@@ -16,7 +16,7 @@ import org.json.*;
 
 import com.pseudosmp.msb.MatrixSpigotBridge;
 import com.pseudosmp.tools.game.ConfigUtils;
-import com.pseudosmp.tools.game.ServerInfo;
+import com.pseudosmp.tools.formatting.MessageFormatter;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class Matrix {
@@ -35,6 +35,7 @@ public class Matrix {
 
 	ConfigUtils config = MatrixSpigotBridge.config;
 	JavaPlugin plugin = MatrixSpigotBridge.getInstance();
+	MessageFormatter formatter = MatrixSpigotBridge.formatter;
 
 	HttpsURLConnection url_conn;
 
@@ -171,8 +172,8 @@ public class Matrix {
 			return false;
 		}
 
-		String htmlBody = MatrixSpigotBridge.yamlEscapeToHtml(formattedBody);
-		String plainBody = MatrixSpigotBridge.stripHtmlTags(htmlBody);
+		String htmlBody = formatter.yamlEscapeToHtml(formattedBody);
+		String plainBody = formatter.stripHtmlTags(htmlBody);
 
 		JSONObject payload = new JSONObject();
 		payload.put("msgtype", "m.text");
@@ -278,85 +279,6 @@ public class Matrix {
 		}
 	}
 
-	public void handleCommand(String command, String sender_address, String event_id) {
-		if (command == null || command.trim().isEmpty()) return;
-
-		String[] parts = command.trim().split("\\s+");
-		String cmd = parts[0].toLowerCase();
-
-		StringBuilder sb = new StringBuilder();
-		for (String cmdName : config.matrixAvailableCommands) {
-			if (sb.length() > 0) sb.append(", ");
-			sb.append(config.matrixCommandPrefix).append(cmdName);
-		}
-
-		String COMMANDS = sb.toString();
-
-		switch (cmd) {
-			// TODO: Parse Time Placeholders in these messages too
-			case "ping":
-				String pingMessage = config.getFormat("matrix_commands.ping");
-				int ping = ping();
-				if (pingMessage != null) {
-					if (ping > 0) postMessage(pingMessage.replace("{PING}", String.valueOf(ping())));
-					else postMessage(config.getFormat("matrix_commands.error")
-										.replace("{ERROR}", "Could not ping Matrix server."));
-				}
-				break;
-			case "list":
-				String listMessage = config.getFormat("matrix_commands.list");
-				if (listMessage != null && !listMessage.isEmpty()) {
-					try {
-						ServerInfo.PlayerStatus status = ServerInfo.getPlayerList();
-						StringBuilder names = new StringBuilder();
-						for (String name : status.getNames()) {
-							if (names.length() > 0) names.append(", ");
-							names.append(name);
-						}
-
-						String finalListMessage = listMessage
-							.replace("{ONLINE}", String.valueOf(status.getOnline()))
-							.replace("{MAX}", String.valueOf(status.getMax()))
-							.replace("{NAMES}", names.toString());
-
-						postMessage(finalListMessage);
-					} catch (Exception e) {
-						addReaction(event_id, "⚠️");
-						postMessage(config.getFormat("matrix_commands.error")
-										.replace("{ERROR}", e.getMessage()));
-					}
-				}
-				break;
-			case "tps":
-				String tpsMessage = config.getFormat("matrix_commands.tps");
-				if (tpsMessage != null && !tpsMessage.isEmpty()) {
-					try {
-						double tps = ServerInfo.getTps();
-						postMessage(tpsMessage.replace("{TPS}", String.format("%.2f", tps)));
-					} catch (Exception e) {
-						addReaction(event_id, "⚠️");
-						postMessage(config.getFormat("matrix_commands.error")
-											.replace("{ERROR}", e.getMessage()));
-					}
-				}
-				break;
-			case "ip":
-				String ipMessage = config.getFormat("matrix_commands.ip");
-				if (ipMessage != null && !ipMessage.isEmpty()) postMessage(ipMessage);
-				break;
-			case "help":
-				String helpMessage = config.getFormat("matrix_commands.help");
-				if (helpMessage != null && !helpMessage.isEmpty()) postMessage(helpMessage.replace("{COMMANDS}", COMMANDS));
-				break;
-			default:
-				String unknownMessage = config.getFormat("matrix_commands.unknown");
-				if (unknownMessage != null && !unknownMessage.isEmpty()) {
-					addReaction(event_id, "❓");
-					postMessage(unknownMessage.replace("{COMMANDS}", COMMANDS));
-				}
-				break;
-		}
-	}
 	public boolean isConnected() {
 		try {
 			get("/_matrix/client/v3/rooms/" + room_id + "/state");

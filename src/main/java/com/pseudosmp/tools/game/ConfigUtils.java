@@ -10,11 +10,13 @@ import org.bukkit.entity.Player;
 import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 import java.util.regex.PatternSyntaxException;
 
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -95,8 +97,10 @@ public class ConfigUtils {
                 }
             }
             // Trailing / will lead the requests to http://example.com//_matrix...
-            while (matrixServer.endsWith("/")) {
+            if (matrixServer.endsWith("/")) {
                 logger.warning("Matrix server URL should not end with a slash (/). Removing trailing slash automatically.");
+            }
+            while (matrixServer.endsWith("/")) {
                 matrixServer = matrixServer.substring(0, matrixServer.length() - 1);
                 config.set("matrix.server", matrixServer);
                 plugin.saveConfig();
@@ -112,13 +116,15 @@ public class ConfigUtils {
             }
             // Moving this here from onEnable()
             if (canUsePapi) {
-                logger.info("PlaceholderAPI found and bound, you can use placeholders in messages");
+                logger.info("PlaceholderAPI is enabled. You can use placeholders in messages!");
             }
+            // Validate TIME placeholders in format strings
+            validateTimePlaceholders(formatSection);
             // bstats consent disclaimer
             if (bstatsConsent && isFirstRun) {
                 logger.warning("bstats Plugin Analytics is enabled by default. " + 
                     "If you wish to opt-out and defer it from loading even once, set bstats_consent to false in the config "+
-                    "before the next restart. This warning will only be shown once."
+                    "before the next restart. This message will only be shown once."
                 );
             }
             return true;
@@ -201,5 +207,29 @@ public class ConfigUtils {
     public String getFormat(String key) {
         Object value = format.get(key);
         return value != null ? value.toString() : "";
+    }
+
+    private void validateTimePlaceholders(ConfigurationSection formatSection) {
+        if (formatSection == null) return;
+        
+        Pattern timePattern = Pattern.compile("\\{TIME:([^}]+)\\}");
+        
+        for (String key : formatSection.getKeys(true)) {
+            Object value = formatSection.get(key);
+            if (value instanceof String) {
+                String message = (String) value;
+                Matcher matcher = timePattern.matcher(message);
+                
+                while (matcher.find()) {
+                    String pattern = matcher.group(1);
+                    try {
+                        DateTimeFormatter.ofPattern(pattern);
+                    } catch (IllegalArgumentException e) {
+                        logger.warning("Invalid TIME placeholder format in '" + key + "': {TIME:" + pattern + "}");
+                        logger.warning("  Error: " + e.getMessage());
+                    }
+                }
+            }
+        }
     }
 }
