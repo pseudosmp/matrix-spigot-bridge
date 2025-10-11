@@ -293,6 +293,7 @@ public class Matrix {
 		String COMMANDS = sb.toString();
 
 		switch (cmd) {
+			// TODO: Parse Time Placeholders in these messages too
 			case "ping":
 				String pingMessage = config.getFormat("matrix_commands.ping");
 				int ping = ping();

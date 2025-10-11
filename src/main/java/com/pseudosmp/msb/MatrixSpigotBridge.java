@@ -2,11 +2,14 @@ package com.pseudosmp.msb;
 
 import java.io.File;
 import java.io.IOException;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.logging.Level;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
@@ -54,6 +57,28 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 	}
 	public static JavaPlugin getInstance() {
 		return JavaPlugin.getPlugin(MatrixSpigotBridge.class);
+	}
+	public static final Pattern TIME_PLACEHOLDER = Pattern.compile("\\{TIME:([^}]+)\\}");
+
+	public static String replaceTimePlaceholders(String input) {
+		if (input == null || input.isEmpty()) return input;
+
+		Matcher matcher = TIME_PLACEHOLDER.matcher(input);
+		StringBuffer out = new StringBuffer();
+		while (matcher.find()) {
+			String pattern = matcher.group(1);
+			String replacement;
+			try {
+				replacement = DateTimeFormatter.ofPattern(pattern)
+					.format(ZonedDateTime.now());
+			} catch (IllegalArgumentException ex) {
+				getInstance().getLogger().warning("Invalid time format '" + pattern + "' in message: " + input);
+				replacement = matcher.group(0);
+			}
+			matcher.appendReplacement(out, Matcher.quoteReplacement(replacement));
+		}
+		matcher.appendTail(out);
+		return out.toString();
 	}
 
 	public void startBridgeAsync(CommandSender sender, Consumer<Boolean> callback) {
@@ -426,8 +451,8 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 		if (config.getFormatSettingBool("reserialize_player"))
 			message = minecraftToMatrixHTML(message);
 		message = ChatColor.stripColor(message);
-
-		final String Format = format;
+		
+		final String Format = replaceTimePlaceholders(format);
 		final String Message = message;
 		Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
 			matrix.postMessage(Format
@@ -480,7 +505,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 		if (config.getFormatSettingBool("reserialize_matrix") && !formattedMessage.isEmpty())
 			message = matrixHTMLToMinecraft(formattedMessage);
 
-		Bukkit.broadcastMessage(format
+		Bukkit.broadcastMessage(replaceTimePlaceholders(format)
 			.replace("{MATRIXNAME}", (player != null) ? player.getName() : defaultPlayername)
 			.replace("{MESSAGE}", message)
 		);
