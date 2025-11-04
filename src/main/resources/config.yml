@@ -130,3 +130,15 @@ format:
             {NAMES}
         tps: '⏱️ Server TPS: {TPS}'
         ip: '🌐 Server IP: yourserver.minecraft.best'
+
+    custom_commands:
+        # You can define your own matrix commands here.
+        # The key is the command name, the value is the message sent when the command is executed.
+        # You can use PlaceholderAPI placeholders in these messages as well!
+        # Example:
+        # greet: 'Hello, {MATRIXNAME}! Welcome to the server!'
+        greet:
+            enabled: true
+            arguments: ['MATRIXNAME', 'MESSAGE']
+            # TODO: Mentions support
+            message: '{MATRIXNAME}, {EXECUTOR} says: {MESSAGE}'
