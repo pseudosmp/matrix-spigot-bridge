@@ -16,7 +16,7 @@ import org.json.*;
 
 import com.pseudosmp.msb.MatrixSpigotBridge;
 import com.pseudosmp.tools.game.ConfigUtils;
-import com.pseudosmp.tools.game.ServerInfo;
+import com.pseudosmp.tools.formatting.MessageFormatter;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class Matrix {
@@ -35,6 +35,7 @@ public class Matrix {
 
 	ConfigUtils config = MatrixSpigotBridge.config;
 	JavaPlugin plugin = MatrixSpigotBridge.getInstance();
+	MessageFormatter formatter = MatrixSpigotBridge.formatter;
 
 	HttpsURLConnection url_conn;
 
@@ -52,30 +53,13 @@ public class Matrix {
 		try {
 			JSONObject login_payload = new JSONObject();
 			login_payload.put("type", "m.login.password");
-			login_payload.put("user", user_id);
+			login_payload.put("identifier", new JSONObject()
+				.put("type", "m.id.user")
+				.put("user", user_id)
+			);
 			login_payload.put("password", password);
 
-			JSONObject login_response = null;
-			Exception lastException = null;
-			String[] endpoints = {"v3", "r0", "api/v1"};
-			for (String endpoint : endpoints) {
-				try {
-					login_response = new JSONObject(request("POST", "/_matrix/client/" + endpoint + "/login", login_payload));
-					break;
-				} catch (IOException e) {
-					// Accept both 404 and FileNotFoundException as "try next"
-					if (e instanceof java.io.FileNotFoundException ||
-						(e.getMessage() != null && (e.getMessage().contains("404") || e.getMessage().contains("FileNotFoundException")))) {
-						lastException = e;
-						continue;
-					} else {
-						throw e;
-					}
-				}
-			}
-			if (login_response == null) {
-				throw lastException != null ? lastException : new IOException("Matrix login failed: No endpoint succeeded");
-			}
+			JSONObject login_response = new JSONObject(request("POST", "/_matrix/client/v3/login", login_payload));
 			access_token = login_response.getString("access_token");
 		} catch (Exception e) {
 			plugin.getLogger().severe("Failed to obtain token: " + e.getMessage());
@@ -99,6 +83,35 @@ public class Matrix {
 
 		this.room_id = room_id;
 
+		// Check membership of bot in room
+		try {
+			JSONObject membershipState = new JSONObject(
+				get("/_matrix/client/v3/rooms/" + room_id + "/state/m.room.member/" + user_id)
+			);
+
+			String membership = membershipState.optString("membership", "");
+			if ("join".equals(membership)) {
+				plugin.getLogger().info("[MatrixSpigotBridge] Already in room " + room_id);
+			} else {
+				// Not joined -> try to join
+				try {
+					request("POST", "/_matrix/client/v3/rooms/" + room_id + "/join", new JSONObject());
+					plugin.getLogger().info("[MatrixSpigotBridge] Joined room " + room_id);
+				} catch (Exception e) {
+					plugin.getLogger().warning("[MatrixSpigotBridge] Failed to join room: " + e.getMessage());
+				}
+			}
+		} catch (Exception e) {
+			// If membership lookup fails, attempt join anyway
+			plugin.getLogger().info("[MatrixSpigotBridge] Membership check failed, attempting join...");
+			try {
+				request("POST", "/_matrix/client/v3/rooms/" + room_id + "/join", new JSONObject());
+				plugin.getLogger().info("[MatrixSpigotBridge] Joined room " + room_id);
+			} catch (Exception e2) {
+				plugin.getLogger().warning("[MatrixSpigotBridge] Failed to join room: " + e2.getMessage());
+			}
+		}
+
 		JSONObject roomFilters = new JSONObject();
 		JSONObject room = new JSONObject();
 		JSONObject timeline = new JSONObject();
@@ -121,6 +134,8 @@ public class Matrix {
 			timeline.put("types", new JSONArray().put("m.room.message"));
 			// Ignore messages sent by these users
 			timeline.put("not_senders", notSenders);
+			// Lazy load members to reduce sync overhead
+			timeline.put("lazy_load_members", true);
 
 			room.put("timeline", timeline);
 			roomFilters.put("room", room);
@@ -157,8 +172,8 @@ public class Matrix {
 			return false;
 		}
 
-		String htmlBody = MatrixSpigotBridge.yamlEscapeToHtml(formattedBody);
-		String plainBody = MatrixSpigotBridge.stripHtmlTags(htmlBody);
+		String htmlBody = formatter.yamlEscapeToHtml(formattedBody);
+		String plainBody = formatter.stripHtmlTags(htmlBody);
 
 		JSONObject payload = new JSONObject();
 		payload.put("msgtype", "m.text");
@@ -170,7 +185,7 @@ public class Matrix {
 
 		try {
 			String txnId = nextTxnId();
-			String endpoint = "/_matrix/client/r0/rooms/" + room_id + "/send/m.room.message/" + txnId;
+			String endpoint = "/_matrix/client/v3/rooms/" + room_id + "/send/m.room.message/" + txnId;
 			request("PUT", endpoint, payload);
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -183,10 +198,9 @@ public class Matrix {
 	public JSONArray getLastMessages() throws Exception {
 		JSONArray result = new JSONArray();
 
-		JSONObject raw_result = new JSONObject(request("GET", "/_matrix/client/r0/sync?filter=" + this.room_filters
+		JSONObject raw_result = new JSONObject(request("GET", "/_matrix/client/v3/sync?filter=" + this.room_filters
 			+ (room_history_token.isEmpty() ? "" : "&since=" + this.room_history_token)
-			+ "&access_token=" + this.access_token
-		, new JSONObject(), false));
+		, new JSONObject(), true));
 
 		this.room_history_token = raw_result.getString("next_batch");
 
@@ -212,7 +226,7 @@ public class Matrix {
 
 		if (!displayname_by_matrixid.containsKey(matrixid)) {
 			try {
-				JSONObject response = new JSONObject(get("/_matrix/client/r0/profile/" + matrixid + "/displayname"));
+				JSONObject response = new JSONObject(get("/_matrix/client/v3/profile/" + matrixid + "/displayname"));
 				displayname_by_matrixid.put(matrixid, response.getString("displayname"));
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -233,7 +247,7 @@ public class Matrix {
 			// The state_key for m.room.topic is always an empty string
 			request(
 				"PUT",
-				"/_matrix/client/r0/rooms/" + room_id + "/state/m.room.topic",
+				"/_matrix/client/v3/rooms/" + room_id + "/state/m.room.topic",
 				payload
 			);
 			return true;
@@ -256,7 +270,7 @@ public class Matrix {
 			);
 
             String txnId = nextTxnId();
-            String endpoint = "/_matrix/client/r0/rooms/" + room_id + "/send/m.reaction/" + txnId;
+            String endpoint = "/_matrix/client/v3/rooms/" + room_id + "/send/m.reaction/" + txnId;
 			request("PUT", endpoint, payload);
 			return true;
 		} catch (Exception e) {
@@ -265,87 +279,9 @@ public class Matrix {
 		}
 	}
 
-	public void handleCommand(String command, String sender_address, String event_id) {
-		if (command == null || command.trim().isEmpty()) return;
-
-		String[] parts = command.trim().split("\\s+");
-		String cmd = parts[0].toLowerCase();
-
-		StringBuilder sb = new StringBuilder();
-		for (String cmdName : config.matrixAvailableCommands) {
-			if (sb.length() > 0) sb.append(", ");
-			sb.append(config.matrixCommandPrefix).append(cmdName);
-		}
-
-		String COMMANDS = sb.toString();
-
-		switch (cmd) {
-			case "ping":
-				String pingMessage = config.getFormat("matrix_commands.ping");
-				int ping = ping();
-				if (pingMessage != null) {
-					if (ping > 0) postMessage(pingMessage.replace("{PING}", String.valueOf(ping())));
-					else postMessage(config.getFormat("matrix_commands.error")
-										.replace("{ERROR}", "Could not ping Matrix server."));
-				}
-				break;
-			case "list":
-				String listMessage = config.getFormat("matrix_commands.list");
-				if (listMessage != null && !listMessage.isEmpty()) {
-					try {
-						ServerInfo.PlayerStatus status = ServerInfo.getPlayerList();
-						StringBuilder names = new StringBuilder();
-						for (String name : status.getNames()) {
-							if (names.length() > 0) names.append(", ");
-							names.append(name);
-						}
-
-						String finalListMessage = listMessage
-							.replace("{ONLINE}", String.valueOf(status.getOnline()))
-							.replace("{MAX}", String.valueOf(status.getMax()))
-							.replace("{NAMES}", names.toString());
-
-						postMessage(finalListMessage);
-					} catch (Exception e) {
-						addReaction(event_id, "⚠️");
-						postMessage(config.getFormat("matrix_commands.error")
-										.replace("{ERROR}", e.getMessage()));
-					}
-				}
-				break;
-			case "tps":
-				String tpsMessage = config.getFormat("matrix_commands.tps");
-				if (tpsMessage != null && !tpsMessage.isEmpty()) {
-					try {
-						double tps = ServerInfo.getTps();
-						postMessage(tpsMessage.replace("{TPS}", String.format("%.2f", tps)));
-					} catch (Exception e) {
-						addReaction(event_id, "⚠️");
-						postMessage(config.getFormat("matrix_commands.error")
-											.replace("{ERROR}", e.getMessage()));
-					}
-				}
-				break;
-			case "ip":
-				String ipMessage = config.getFormat("matrix_commands.ip");
-				if (ipMessage != null && !ipMessage.isEmpty()) postMessage(ipMessage);
-				break;
-			case "help":
-				String helpMessage = config.getFormat("matrix_commands.help");
-				if (helpMessage != null && !helpMessage.isEmpty()) postMessage(helpMessage.replace("{COMMANDS}", COMMANDS));
-				break;
-			default:
-				String unknownMessage = config.getFormat("matrix_commands.unknown");
-				if (unknownMessage != null && !unknownMessage.isEmpty()) {
-					addReaction(event_id, "❓");
-					postMessage(unknownMessage.replace("{COMMANDS}", COMMANDS));
-				}
-				break;
-		}
-	}
 	public boolean isConnected() {
 		try {
-			get("/_matrix/client/r0/rooms/" + room_id + "/state");
+			get("/_matrix/client/v3/rooms/" + room_id + "/state");
 		} catch (Exception e) {
 			e.printStackTrace();
 			return false;
@@ -369,7 +305,7 @@ public class Matrix {
 		HttpURLConnection con = (HttpURLConnection) url_conn.openConnection();
 		con.setRequestMethod(proto);
 
-		if (addBearer)
+		if (addBearer && !access_token.isEmpty())
 			con.setRequestProperty("Authorization", "Bearer " + access_token);
 
 		con.setRequestProperty("Content-Type", "application/json; utf-8");
@@ -383,11 +319,30 @@ public class Matrix {
 			}
 		}
 
-		try (BufferedReader br = new BufferedReader(new InputStreamReader(con.getInputStream(), "utf-8"))) {
-			String responseLine = null;
-			while ((responseLine = br.readLine()) != null) {
-				response.append(responseLine.trim());
+		// Handle error responses properly
+		int statusCode = con.getResponseCode();
+		if (statusCode >= 200 && statusCode < 300) {
+			try (BufferedReader br = new BufferedReader(new InputStreamReader(con.getInputStream(), "utf-8"))) {
+				String responseLine = null;
+				while ((responseLine = br.readLine()) != null) {
+					response.append(responseLine.trim());
+				}
 			}
+		} else {
+			// Read error stream for better error messages
+			try (BufferedReader br = new BufferedReader(new InputStreamReader(con.getErrorStream(), "utf-8"))) {
+				String responseLine = null;
+				while ((responseLine = br.readLine()) != null) {
+					response.append(responseLine.trim());
+				}
+			}
+			
+			// Log the error details for debugging
+			plugin.getLogger().warning("Matrix API Error (" + statusCode + "): " + response.toString());
+			
+			// Throw exception with more detailed error message
+			throw new IOException("Server returned HTTP response code: " + statusCode + 
+				" for URL: " + server + url + " - Error: " + response.toString());
 		}
 
 		return response.toString();
