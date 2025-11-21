@@ -58,7 +58,10 @@ public class RestartBridge implements CommandExecutor {
         plugin.startBridgeAsync(sender, success -> {
             if (success) {
                 sender.sendMessage("§e[MatrixSpigotBridge] §aMatrix bridge restarted successfully.");
-                plugin.getMatrix().postMessage(config.getFormat("server.reconnect"));
+                try {
+                    plugin.getMatrix().getLastMessages(); // Don't process messages sent during restart
+                } catch (Exception ignored) {}
+                plugin.sendMessageToMatrix(config.getFormat("server.reconnect"), "", null);
                 if (config.matrixTopicUpdateInterval > 0 && !config.getFormat("room_topic").isEmpty()) {
                     plugin.updateRoomTopicAsync(success1 -> {});
                 }

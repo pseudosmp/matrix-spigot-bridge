@@ -435,6 +435,9 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 		if (!config.isFirstRun) {
 			startBridgeAsync(null, success -> {
 				if (success) {
+					try {
+						matrix.getLastMessages(); // Don't process messages sent during startup
+					} catch (Exception ignored) {}
 					String start_message = config.getFormat("server.start");
 					if (!start_message.isEmpty())
 						sendMessageToMatrix(start_message, "", null);
@@ -448,12 +451,8 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 
 	@Override
 	public void onDisable() {
-		cancelAllTasks();
-
 		String stop_message = config.getFormat("server.stop");
 		if (!stop_message.isEmpty() && matrix != null) {
-			stop_message = formatter.replaceTimePlaceholders(stop_message);
-
 			final String msg = stop_message;
 			Thread shutdownThread = new Thread(() -> {
 				try {
@@ -465,6 +464,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 				shutdownThread.join(5000); // Wait up to 5 seconds for the message to send
 				if (shutdownThread.isAlive()) {
 					logger.warning("Shutdown message did not send in time, forcefully disabling...");
+					cancelAllTasks();
 					shutdownThread.interrupt();
 				}
 			} catch (InterruptedException ignored) {}
