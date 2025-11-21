@@ -5,7 +5,7 @@
 
     <groupId>com.pseudosmp</groupId>
     <artifactId>matrix-spigot-bridge</artifactId>
-    <version>2.5.0-testing</version>
+    <version>2.5.0</version>
     <packaging>jar</packaging>
 
     <name>MatrixSpigotBridge v2</name>
