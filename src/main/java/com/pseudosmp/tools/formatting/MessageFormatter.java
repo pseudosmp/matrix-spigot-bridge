@@ -123,20 +123,41 @@ public class MessageFormatter {
         // Replace <br> and <br/> with newlines
         input = input.replaceAll("(?i)<br\\s*/?>", "\n");
 
-        // Bold: <b> or <strong>
-        input = input.replaceAll("(?i)<(b|strong)>(.*?)</\\1>", "§l$2§r");
-        // Italic: <i> or <em>
-        input = input.replaceAll("(?i)<(i|em)>(.*?)</\\1>", "§o$2§r");
-        // Underline: <u>
-        input = input.replaceAll("(?i)<u>(.*?)</u>", "§n$1§r");
-        // Strikethrough: <s>, <strike>, <del>
-        input = input.replaceAll("(?i)<(s|strike|del)>(.*?)</\\1>", "§m$2§r");
+        // Headings (convert to bold with newline after)
+        input = input.replaceAll("(?i)<(h[1-6])(?:\\s+[^>]*)?>(.+?)<\\1>", "§l$2§r\n");
 
-        // Remove all other HTML tags
+        // Remove <p> tags inside list items before processing lists
+        input = input.replaceAll("(?i)<li(?:\\s+[^>]*)?>\\s*<p(?:\\s+[^>]*)?>", "<li>");
+        input = input.replaceAll("(?i)</p>\\s*</li>", "</li>");
+        
+        // Lists - unordered
+        input = input.replaceAll("(?i)<li(?:\\s+[^>]*)?>", "• ");
+        input = input.replaceAll("(?i)</li>", "\n");
+        input = input.replaceAll("(?i)</?ul(?:\\s+[^>]*)?>", "");
+        
+        // Lists - ordered (simple conversion, no numbering)
+        input = input.replaceAll("(?i)</?ol(?:\\s+[^>]*)?>", "");
+
+        // Bold: <b> or <strong>
+        input = input.replaceAll("(?i)<(b|strong)(?:\\s+[^>]*)?>(.+?)</\\1>", "§l$2§r");
+        // Italic: <i> or <em>
+        input = input.replaceAll("(?i)<(i|em)(?:\\s+[^>]*)?>(.+?)</\\1>", "§o$2§r");
+        // Underline: <u>
+        input = input.replaceAll("(?i)<u(?:\\s+[^>]*)?>(.+?)</u>", "§n$1§r");
+        // Strikethrough: <s>, <strike>, <del>
+        input = input.replaceAll("(?i)<(s|strike|del)(?:\\s+[^>]*)?>(.+?)</\\1>", "§m$2§r");
+        // Spoilers
+        input = input.replaceAll("(?i)<span(?:\\s+[^>]*)?data-mx-spoiler(?:=\"[^\"]*\")?(?:\\s+[^>]*)?>(.+?)</span>", "§k$1§r");
+        // Hyperlink (show as "text (url)")
+        input = input.replaceAll("(?i)<a(?:\\s+[^>]*)?href=\"([^\"]*)\"(?:\\s+[^>]*)?>(.+?)</a>", "$2 ($1)");
+
+        // Remove all other HTML tags (including leftover attributes)
         input = input.replaceAll("(?i)<[^>]+>", "");
 
         // Unescape HTML entities
         input = StringEscapeUtils.unescapeHtml4(input);
+        // Clean up multiple newlines
+        input = input.replaceAll("\n{3,}", "\n\n");
 
         return input;
     }

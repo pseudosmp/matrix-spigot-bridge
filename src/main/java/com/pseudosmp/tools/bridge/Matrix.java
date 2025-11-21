@@ -91,24 +91,24 @@ public class Matrix {
 
 			String membership = membershipState.optString("membership", "");
 			if ("join".equals(membership)) {
-				plugin.getLogger().info("[MatrixSpigotBridge] Already in room " + room_id);
+				plugin.getLogger().info("Already in room " + room_id);
 			} else {
 				// Not joined -> try to join
 				try {
 					request("POST", "/_matrix/client/v3/rooms/" + room_id + "/join", new JSONObject());
-					plugin.getLogger().info("[MatrixSpigotBridge] Joined room " + room_id);
+					plugin.getLogger().info("Joined room " + room_id);
 				} catch (Exception e) {
-					plugin.getLogger().warning("[MatrixSpigotBridge] Failed to join room: " + e.getMessage());
+					plugin.getLogger().warning("Failed to join room: " + e.getMessage());
 				}
 			}
 		} catch (Exception e) {
 			// If membership lookup fails, attempt join anyway
-			plugin.getLogger().info("[MatrixSpigotBridge] Membership check failed, attempting join...");
+			plugin.getLogger().info("Membership check failed, attempting join...");
 			try {
 				request("POST", "/_matrix/client/v3/rooms/" + room_id + "/join", new JSONObject());
-				plugin.getLogger().info("[MatrixSpigotBridge] Joined room " + room_id);
+				plugin.getLogger().info("Joined room " + room_id);
 			} catch (Exception e2) {
-				plugin.getLogger().warning("[MatrixSpigotBridge] Failed to join room: " + e2.getMessage());
+				plugin.getLogger().warning("Failed to join room: " + e2.getMessage());
 			}
 		}
 

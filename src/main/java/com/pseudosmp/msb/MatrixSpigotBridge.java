@@ -24,7 +24,6 @@ import org.json.JSONObject;
 import com.pseudosmp.tools.bridge.HttpsTrustAll;
 import com.pseudosmp.tools.bridge.Matrix;
 import com.pseudosmp.tools.bridge.commands.MatrixCommandHandler;
-import com.pseudosmp.tools.bridge.commands.defaults.*;
 import com.pseudosmp.tools.game.MinecraftChatListener;
 import com.pseudosmp.tools.game.PlayerEventsListener;
 import com.pseudosmp.tools.game.ConfigUtils;
@@ -74,13 +73,8 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 			establishConnection = null;
 		}
 
-		// Cancel previous poller if running
-		if (matrixPollerTask != null) {
-			try {
-				matrixPollerTask.cancel();
-			} catch (IllegalStateException ignored) {}
-			matrixPollerTask = null;
-		}
+		cancelAllTasks();
+		unregisterEventListeners();
 
 		BukkitRunnable poller = new BukkitRunnable(){
 			@Override
@@ -190,11 +184,8 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 				logger.info("Connected to Matrix server as " + config.matrixUserId + " in room " + config.matrixRoomId);
 				// Initialize command handler
 				commandHandler = new MatrixCommandHandler(matrix, config, formatter);
-				commandHandler.registerCommand("ping", new PingCommand(commandHandler));
-				commandHandler.registerCommand("list", new ListCommand(commandHandler));
-				commandHandler.registerCommand("tps", new TpsCommand(commandHandler));
-				commandHandler.registerCommand("ip", new IpCommand(commandHandler));
-				commandHandler.registerCommand("help", new HelpCommand(commandHandler));
+				// Register commands based on config
+				commandHandler.registerDefaultCommands();
 				// Start poller and register events on main thread
 				Bukkit.getScheduler().runTask(this, () -> {
 					minecraftChatListener = new MinecraftChatListener(this);
@@ -312,7 +303,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
         }
 	}
 
-	public void cancelAllTasks() {
+	private void cancelAllTasks() {
 		if (matrixPollerTask != null) {
 			try {
 				matrixPollerTask.cancel();
@@ -324,6 +315,21 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 				topicUpdaterTask.cancel();
 			} catch (IllegalStateException ignored) {}
 			topicUpdaterTask = null;
+		}
+	}
+
+	private void unregisterEventListeners() {
+		if (minecraftChatListener != null) {
+			try {
+				org.bukkit.event.HandlerList.unregisterAll(minecraftChatListener);
+			} catch (Exception ignored) {logger.warning("DEBUG: Failed to unregister minecraftChatListener - " + ignored.getMessage());}
+			minecraftChatListener = null;
+		} // TODO: remove debug messages ^ v
+		if (playerEventsListener != null) {
+			try {
+				org.bukkit.event.HandlerList.unregisterAll(playerEventsListener);
+			} catch (Exception ignored) {logger.warning("DEBUG: Failed to unregister playerEventsListener - " + ignored.getMessage());}
+			playerEventsListener = null;
 		}
 	}
 
@@ -418,7 +424,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 		// Initialize message formatter
 		formatter = new MessageFormatter(logger, config.canUsePapi);
 
-		if (config.bstatsConsent) {
+		if (config.bstatsConsent && !config.isFirstRun) {
 			@SuppressWarnings("unused")
 			Metrics metrics = new Metrics(this, 26323);
 			logger.info("bstats for MatrixSpigotBridge has been enabled. You can opt-out by disabling bstats in the plugin config.");
