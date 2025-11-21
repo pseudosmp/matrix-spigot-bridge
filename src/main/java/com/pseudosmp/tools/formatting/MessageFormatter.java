@@ -65,55 +65,79 @@ public class MessageFormatter {
 
     public String minecraftToMatrixHTML(String input) {
         if (input == null) return null;
+        
+        // Escape HTML special characters first
+        input = input.replace("&", "&amp;")
+                    .replace("<", "&lt;")
+                    .replace(">", "&gt;");
+        
         StringBuilder out = new StringBuilder();
-        boolean bold = false, italic = false, underline = false, strike = false, magic = false;
+        java.util.Stack<String> tagStack = new java.util.Stack<String>();
         char[] chars = input.toCharArray();
+        
         for (int i = 0; i < chars.length; i++) {
             if (chars[i] == '§' && i + 1 < chars.length) {
                 char code = Character.toLowerCase(chars[++i]);
                 switch (code) {
                     case 'l': // Bold
-                        if (!bold) { out.append("<b>"); bold = true; }
+                        if (!tagStack.contains("strong")) {
+                            out.append("<strong>");
+                            tagStack.push("strong");
+                        }
                         break;
                     case 'o': // Italic
-                        if (!italic) { out.append("<i>"); italic = true; }
+                        if (!tagStack.contains("em")) {
+                            out.append("<em>");
+                            tagStack.push("em");
+                        }
                         break;
                     case 'n': // Underline
-                        if (!underline) { out.append("<u>"); underline = true; }
+                        if (!tagStack.contains("u")) {
+                            out.append("<u>");
+                            tagStack.push("u");
+                        }
                         break;
                     case 'm': // Strikethrough
-                        if (!strike) { out.append("<s>"); strike = true; }
+                        if (!tagStack.contains("del")) {
+                            out.append("<del>");
+                            tagStack.push("del");
+                        }
                         break;
-                    case 'k': // Magic
-                        if (!magic) { magic = true; }
+                    case 'k': // Magic/obfuscated -> spoiler
+                        if (!tagStack.contains("spoiler")) {
+                            out.append("<span data-mx-spoiler>");
+                            tagStack.push("spoiler");
+                        }
                         break;
-                    case 'r': // Reset
-                        if (bold) { out.append("</b>"); bold = false; }
-                        if (italic) { out.append("</i>"); italic = false; }
-                        if (underline) { out.append("</u>"); underline = false; }
-                        if (strike) { out.append("</s>"); strike = false; }
-                        magic = false;
+                    case 'r': // Reset - close all tags in reverse order
+                        while (!tagStack.isEmpty()) {
+                            String tag = tagStack.pop();
+                            if (tag.equals("spoiler")) {
+                                out.append("</span>");
+                            } else {
+                                out.append("</").append(tag).append(">");
+                            }
+                        }
                         break;
                     default:
-                        // Ignore color codes and unknown codes
+                        // Color codes - ignore in HTML conversion
                         break;
-                }
-            } else if (magic) {
-                // Replace all characters with '�' while magic is active
-                if (chars[i] != ' ' && chars[i] != '\n') {
-                    out.append('�');
-                } else {
-                    out.append(chars[i]);
                 }
             } else {
                 out.append(chars[i]);
             }
         }
-        // Close any unclosed tags
-        if (bold) out.append("</b>");
-        if (italic) out.append("</i>");
-        if (underline) out.append("</u>");
-        if (strike) out.append("</s>");
+        
+        // Close any unclosed tags in reverse order
+        while (!tagStack.isEmpty()) {
+            String tag = tagStack.pop();
+            if (tag.equals("spoiler")) {
+                out.append("</span>");
+            } else {
+                out.append("</").append(tag).append(">");
+            }
+        }
+        
         return out.toString();
     }
 
@@ -175,10 +199,17 @@ public class MessageFormatter {
 
     public String stripHtmlTags(String html) {
         if (html == null) return null;
-        // Remove all HTML tags
-        String text = html.replaceAll("(?i)<[^>]+>", "");
+        
+        // Remove closing tags: </tagname>
+        html = html.replaceAll("(?i)</[a-z][a-z0-9]*>", "");
+        // Remove opening tags with or without attributes: <tagname ...>
+        html = html.replaceAll("(?i)<[a-z][a-z0-9]*(?:\\s+[^>]*)?>", "");
+        // Remove self-closing tags: <br/>, <hr/>
+        html = html.replaceAll("(?i)<[a-z][a-z0-9]*(?:\\s+[^>]*)?/>", "");
+        
         // Unescape HTML entities
-        text = StringEscapeUtils.unescapeHtml4(text);
-        return text;
+        html = StringEscapeUtils.unescapeHtml4(html);
+        
+        return html;
     }
 }

@@ -322,13 +322,13 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 		if (minecraftChatListener != null) {
 			try {
 				org.bukkit.event.HandlerList.unregisterAll(minecraftChatListener);
-			} catch (Exception ignored) {logger.warning("DEBUG: Failed to unregister minecraftChatListener - " + ignored.getMessage());}
+			} catch (Exception ignored) {}
 			minecraftChatListener = null;
-		} // TODO: remove debug messages ^ v
+		}
 		if (playerEventsListener != null) {
 			try {
 				org.bukkit.event.HandlerList.unregisterAll(playerEventsListener);
-			} catch (Exception ignored) {logger.warning("DEBUG: Failed to unregister playerEventsListener - " + ignored.getMessage());}
+			} catch (Exception ignored) {}
 			playerEventsListener = null;
 		}
 	}
@@ -341,8 +341,9 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 
 		if (config.canUsePapi)
 			format = formatter.replacePlaceholderAPI(player, format);
-		if (config.getFormatSettingBool("reserialize_player"))
+		if (config.getFormatSettingBool("reserialize_player")) {
 			message = formatter.minecraftToMatrixHTML(message);
+		}
 		message = formatter.stripMinecraftColors(message);
 
 		final String Format = formatter.replaceTimePlaceholders(format);
