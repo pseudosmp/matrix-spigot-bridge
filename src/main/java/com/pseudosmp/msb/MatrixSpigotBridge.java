@@ -453,10 +453,10 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 	public void onDisable() {
 		String stop_message = config.getFormat("server.stop");
 		if (!stop_message.isEmpty() && matrix != null) {
-			final String msg = stop_message;
+			final String msg = formatter.replaceTimePlaceholders(stop_message);
 			Thread shutdownThread = new Thread(() -> {
 				try {
-					sendMessageToMatrix(msg,"", null);
+					matrix.postMessage(msg);
 				} catch (Exception ignored) {}
 			});
 			shutdownThread.start();
