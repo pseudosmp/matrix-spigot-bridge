@@ -14,6 +14,7 @@ public class IpCommand implements MatrixCommand {
         String ipMessage = handler.getConfig().getFormat("matrix_commands.ip");
         if (ipMessage != null && !ipMessage.isEmpty()) {
             ipMessage = handler.getFormatter().replaceTimePlaceholders(ipMessage);
+            ipMessage = handler.getFormatter().replacePlaceholderAPI(null, ipMessage);
             handler.getMatrix().postMessage(ipMessage);
         }
     }

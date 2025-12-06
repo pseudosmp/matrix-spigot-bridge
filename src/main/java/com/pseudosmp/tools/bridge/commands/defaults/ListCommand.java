@@ -14,6 +14,8 @@ public class ListCommand implements MatrixCommand {
     public void execute(String[] args, String sender, String eventId) {
         String listMessage = handler.getConfig().getFormat("matrix_commands.list");
         if (listMessage != null && !listMessage.isEmpty()) {
+            listMessage = handler.getFormatter().replaceTimePlaceholders(listMessage);
+            listMessage = handler.getFormatter().replacePlaceholderAPI(null, listMessage);
             try {
                 ServerInfo.PlayerStatus status = ServerInfo.getPlayerList();
                 StringBuilder names = new StringBuilder();
@@ -22,7 +24,6 @@ public class ListCommand implements MatrixCommand {
                     names.append(name);
                 }
 
-                listMessage = handler.getFormatter().replaceTimePlaceholders(listMessage);
                 String finalListMessage = listMessage
                     .replace("{ONLINE}", String.valueOf(status.getOnline()))
                     .replace("{MAX}", String.valueOf(status.getMax()))

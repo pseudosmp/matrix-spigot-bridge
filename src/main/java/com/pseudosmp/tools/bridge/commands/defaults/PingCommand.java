@@ -15,6 +15,7 @@ public class PingCommand implements MatrixCommand {
         int ping = handler.getMatrix().ping();
         if (pingMessage != null) {
             pingMessage = handler.getFormatter().replaceTimePlaceholders(pingMessage);
+            pingMessage = handler.getFormatter().replacePlaceholderAPI(null, pingMessage);
             if (ping > 0) {
                 handler.getMatrix().postMessage(pingMessage.replace("{PING}", String.valueOf(ping)));
             } else {

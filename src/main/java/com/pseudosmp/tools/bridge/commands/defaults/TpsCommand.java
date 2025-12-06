@@ -14,15 +14,20 @@ public class TpsCommand implements MatrixCommand {
     public void execute(String[] args, String sender, String eventId) {
         String tpsMessage = handler.getConfig().getFormat("matrix_commands.tps");
         if (tpsMessage != null && !tpsMessage.isEmpty()) {
-            try {
-                double tps = ServerInfo.getTps();
-                tpsMessage = handler.getFormatter().replaceTimePlaceholders(tpsMessage);
-                handler.getMatrix().postMessage(tpsMessage.replace("{TPS}", String.format("%.2f", tps)));
-            } catch (Exception e) {
-                handler.getMatrix().addReaction(eventId, "⚠️");
-                String errorMessage = handler.getConfig().getFormat("matrix_commands.error");
-                errorMessage = handler.getFormatter().replaceTimePlaceholders(errorMessage);
-                handler.getMatrix().postMessage(errorMessage.replace("{ERROR}", e.getMessage()));
+            tpsMessage = handler.getFormatter().replaceTimePlaceholders(tpsMessage);
+            tpsMessage = handler.getFormatter().replacePlaceholderAPI(null, tpsMessage);
+            if (tpsMessage.contains("{TPS}")) {
+                try {
+                    double tps = ServerInfo.getTps();
+                    handler.getMatrix().postMessage(tpsMessage.replace("{TPS}", String.format("%.2f", tps)));
+                } catch (Exception e) {
+                    handler.getMatrix().addReaction(eventId, "⚠️");
+                    String errorMessage = handler.getConfig().getFormat("matrix_commands.error");
+                    errorMessage = handler.getFormatter().replaceTimePlaceholders(errorMessage);
+                    handler.getMatrix().postMessage(errorMessage.replace("{ERROR}", e.getMessage()));
+                }
+            } else {
+                handler.getMatrix().postMessage(tpsMessage);
             }
         }
     }

@@ -63,13 +63,14 @@ public class MatrixCommandHandler {
             // Unknown command
             String unknownMessage = config.getFormat("matrix_commands.unknown");
             if (unknownMessage != null && !unknownMessage.isEmpty()) {
+                unknownMessage = formatter.replaceTimePlaceholders(unknownMessage);
+                unknownMessage = formatter.replacePlaceholderAPI(null, unknownMessage);
                 StringBuilder sb = new StringBuilder();
                 for (String cmdName : config.matrixAvailableCommands) {
                     if (sb.length() > 0) sb.append(", ");
                     sb.append(config.matrixCommandPrefix).append(cmdName);
                 }
                 matrix.addReaction(eventId, "❓");
-                unknownMessage = formatter.replaceTimePlaceholders(unknownMessage);
                 matrix.postMessage(unknownMessage.replace("{COMMANDS}", sb.toString()));
             }
         }

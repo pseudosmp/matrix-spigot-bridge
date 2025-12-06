@@ -39,16 +39,11 @@ public class ServerInfo {
 		return new PlayerStatus(names, online, max);
 	}
 
-    public static double getTps() {
-        try {
-            Object server = org.bukkit.Bukkit.getServer();
-            Object minecraftServer = server.getClass().getMethod("getServer").invoke(server);
-            java.lang.reflect.Field recentTpsField = minecraftServer.getClass().getField("recentTps");
-            double[] recentTps = (double[]) recentTpsField.get(minecraftServer);
-            return Math.min(recentTps[0], 20.0); // sometimes shows 20.01, so capping it to 20
-        } catch (Exception e) {
-            // Could not fetch TPS
-            return -1;
-        }
+    public static double getTps() throws Exception {
+		Object server = org.bukkit.Bukkit.getServer();
+		Object minecraftServer = server.getClass().getMethod("getServer").invoke(server);
+		java.lang.reflect.Field recentTpsField = minecraftServer.getClass().getField("recentTps");
+		double[] recentTps = (double[]) recentTpsField.get(minecraftServer);
+		return Math.min(recentTps[0], 20.0); // sometimes shows 20.01, so capping it to 20
     }
 }
