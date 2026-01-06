@@ -48,7 +48,7 @@ Support and Feature Requests in [SpigotMC Resource Discussion Tab](https://www.s
 
 In the example configuration, we have a user *@mcbot:example.com* whose password is *y0urPa55w0rd* (the user is registered at home server  *example.com:8448* ) we want to bind it the room* !fdsgfdKJHGKujys:example.com* to the minecraft chat
 
-*Optionally:* If you have issues with the bot Authentication, or simply don't want to store the password cleartext at all, you can force the bot account's authentication key into *access.yml.* You can find this at: *Settings > Help & About > Advanced > Access token* (Element client) or similar in your preferred client.
+*Optionally:* If you have issues with the bot authentication, or simply don't want to store the password cleartext at all, you can force the bot account's authentication key into *access.yml.* You can find this at: *Settings > Help & About > Advanced > Access token* (Element client) or similar in your preferred client.
 
 **Security tip:** Once the bot user have successfully connected at least once, an access token will be generated in access.yml to avoid using password anymore, so you can safely set the *password * to empty value if you don't want password stored in clear text in your config file.
 
