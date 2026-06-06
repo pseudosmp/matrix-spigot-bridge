@@ -34,4 +34,4 @@ jobs:
       with:
         name: MatrixSpigotBridge
         path: ./target/MatrixSpigotBridge.jar
-        compression-level: 0
+        archive: false
