@@ -28,8 +28,8 @@ public class Matrix {
 	private String room_history_token = "";
 	private String room_filters = "";
 
-    private static final long TXN_EPOCH = System.currentTimeMillis();
-    private static final AtomicLong TXN_SEQ = new AtomicLong(0);
+	private static final long TXN_EPOCH = System.currentTimeMillis();
+	private static final AtomicLong TXN_SEQ = new AtomicLong(0);
 
 	private HashMap<String, String> displayname_by_matrixid = new HashMap<String, String>();
 
@@ -44,10 +44,10 @@ public class Matrix {
 		this.server = server;
 	}
 
-    private static String nextTxnId() {
-        long seq = TXN_SEQ.incrementAndGet();
-        return Long.toString(TXN_EPOCH, 36) + "-" + Long.toString(seq, 36);
-    }
+	private static String nextTxnId() {
+		long seq = TXN_SEQ.incrementAndGet();
+		return Long.toString(TXN_EPOCH, 36) + "-" + Long.toString(seq, 36);
+	}
 
 	public boolean validateToken() {
 		if (access_token == null || access_token.isEmpty()) {
@@ -56,7 +56,8 @@ public class Matrix {
 		try {
 			JSONObject whoami = new JSONObject(get("/_matrix/client/v3/account/whoami"));
 			String returnedUser = whoami.optString("user_id", "");
-			if (!returnedUser.isEmpty() && (user_id == null || user_id.isEmpty() || returnedUser.equalsIgnoreCase(user_id))) {
+			if (!returnedUser.isEmpty()
+					&& (user_id == null || user_id.isEmpty() || returnedUser.equalsIgnoreCase(user_id))) {
 				return true;
 			}
 		} catch (Exception e) {
@@ -73,12 +74,12 @@ public class Matrix {
 			JSONObject login_payload = new JSONObject();
 			login_payload.put("type", "m.login.password");
 			login_payload.put("identifier", new JSONObject()
-				.put("type", "m.id.user")
-				.put("user", user_id)
-			);
+					.put("type", "m.id.user")
+					.put("user", user_id));
 			login_payload.put("password", password);
 
-			JSONObject login_response = new JSONObject(request("POST", "/_matrix/client/v3/login", login_payload, false));
+			JSONObject login_response = new JSONObject(
+					request("POST", "/_matrix/client/v3/login", login_payload, false));
 			if (login_response.has("access_token")) {
 				access_token = login_response.getString("access_token");
 				return true;
@@ -101,7 +102,8 @@ public class Matrix {
 	}
 
 	public boolean joinRoom(String room_id) {
-		if (user_id == null || user_id.isEmpty() || room_id == null || room_id.isEmpty() || access_token == null || access_token.isEmpty())
+		if (user_id == null || user_id.isEmpty() || room_id == null || room_id.isEmpty() || access_token == null
+				|| access_token.isEmpty())
 			return false;
 
 		this.room_id = room_id;
@@ -110,8 +112,7 @@ public class Matrix {
 		// Check membership of bot in room
 		try {
 			JSONObject membershipState = new JSONObject(
-				get("/_matrix/client/v3/rooms/" + room_id + "/state/m.room.member/" + user_id)
-			);
+					get("/_matrix/client/v3/rooms/" + room_id + "/state/m.room.member/" + user_id));
 
 			String membership = membershipState.optString("membership", "");
 			if ("join".equals(membership)) {
@@ -149,7 +150,8 @@ public class Matrix {
 					}
 				}
 			}
-			plugin.getLogger().info("Matrix: Messages from these users will not be relayed to Minecraft chat: " + notSenders.toString());
+			plugin.getLogger().info("Matrix: Messages from these users will not be relayed to Minecraft chat: "
+					+ notSenders.toString());
 			// Get only events from this room
 			room.put("rooms", new JSONArray().put(room_id));
 			// Get only message events
@@ -168,7 +170,8 @@ public class Matrix {
 			return false;
 		}
 
-		// Send first sync (to populate room_history_token and ignore any messages sent before server start)
+		// Send first sync (to populate room_history_token and ignore any messages sent
+		// before server start)
 		try {
 			getLastMessages();
 		} catch (Exception e) {
@@ -178,7 +181,7 @@ public class Matrix {
 
 		return true;
 	}
-    
+
 	public int ping() {
 		long start = System.currentTimeMillis();
 		try {
@@ -222,8 +225,7 @@ public class Matrix {
 		JSONArray result = new JSONArray();
 
 		JSONObject raw_result = new JSONObject(request("GET", "/_matrix/client/v3/sync?filter=" + this.room_filters
-			+ (room_history_token.isEmpty() ? "" : "&since=" + this.room_history_token)
-		, new JSONObject(), true));
+				+ (room_history_token.isEmpty() ? "" : "&since=" + this.room_history_token), new JSONObject(), true));
 
 		if (raw_result.has("next_batch")) {
 			this.room_history_token = raw_result.getString("next_batch");
@@ -279,10 +281,9 @@ public class Matrix {
 			payload.put("topic", topic);
 			// The state_key for m.room.topic is always an empty string
 			request(
-				"PUT",
-				"/_matrix/client/v3/rooms/" + room_id + "/state/m.room.topic",
-				payload
-			);
+					"PUT",
+					"/_matrix/client/v3/rooms/" + room_id + "/state/m.room.topic",
+					payload);
 			return true;
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -297,13 +298,12 @@ public class Matrix {
 		try {
 			JSONObject payload = new JSONObject();
 			payload.put("m.relates_to", new JSONObject()
-				.put("rel_type", "m.annotation")
-				.put("event_id", event_id)
-				.put("key", reaction)
-			);
+					.put("rel_type", "m.annotation")
+					.put("event_id", event_id)
+					.put("key", reaction));
 
-            String txnId = nextTxnId();
-            String endpoint = "/_matrix/client/v3/rooms/" + room_id + "/send/m.reaction/" + txnId;
+			String txnId = nextTxnId();
+			String endpoint = "/_matrix/client/v3/rooms/" + room_id + "/send/m.reaction/" + txnId;
 			request("PUT", endpoint, payload);
 			return true;
 		} catch (Exception e) {
@@ -343,11 +343,11 @@ public class Matrix {
 		if (addBearer && !access_token.isEmpty())
 			con.setRequestProperty("Authorization", "Bearer " + access_token);
 
-		con.setRequestProperty("Content-Type", "application/json");
 		con.setRequestProperty("Accept", "application/json");
-		con.setDoOutput(true);
 
 		if (!proto.equals("GET")) {
+			con.setRequestProperty("Content-Type", "application/json");
+			con.setDoOutput(true);
 			try (OutputStream os = con.getOutputStream()) {
 				byte[] input = strpayload.getBytes("utf-8");
 				os.write(input, 0, input.length);
@@ -371,13 +371,13 @@ public class Matrix {
 					response.append(responseLine.trim());
 				}
 			}
-			
+
 			// Log the error details for debugging
 			plugin.getLogger().warning("Matrix API Error (" + statusCode + "): " + response.toString());
-			
+
 			// Throw exception with more detailed error message
-			throw new IOException("Server returned HTTP response code: " + statusCode + 
-				" for URL: " + server + url + " - Error: " + response.toString());
+			throw new IOException("Server returned HTTP response code: " + statusCode +
+					" for URL: " + server + url + " - Error: " + response.toString());
 		}
 
 		return response.toString();
