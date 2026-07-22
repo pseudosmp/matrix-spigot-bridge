@@ -105,9 +105,18 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 								}
 							}
 
+							// Only handle room message events with a body
+							String eventType = obj.optString("type", "");
+							JSONObject content = obj.optJSONObject("content");
+							if (!"m.room.message".equals(eventType) || content == null) {
+								return;
+							}
+							String body = content.optString("body", null);
+							if (body == null) {
+								return;
+							}
 							String sender_address = matrix.getDisplayName(obj.getString("sender"), !config.cacheMatrixDisplaynames);
-							String body = obj.getJSONObject("content").getString("body");
-							String formattedBody = obj.getJSONObject("content").optString("formatted_body", "");
+							String formattedBody = content.optString("formatted_body", "");
 
 						if (body.startsWith(config.matrixCommandPrefix)) {
 							String command = body.substring(config.matrixCommandPrefix.length()).trim();
@@ -150,34 +159,49 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 
 			matrix = new Matrix(config.matrixServer, config.matrixUserId);
 
-			boolean loginSuccess = false;
-			if (token != null && !token.isEmpty()) {
-				logger.info("Access token found in access.yml");
-				matrix.setAccessToken(token);
-				loginSuccess = matrix.joinRoom(config.matrixRoomId);
-				if (!loginSuccess) {
-					logger.warning("Access token is invalid or expired, clearing token...");
-					matrix.setAccessToken("");
-					loginSuccess = tryPasswordLogin(matrix, sender);
-				}
-			} else {
-				logger.info("No access token found, trying to login...");
-				loginSuccess = tryPasswordLogin(matrix, sender);
+			// Step 1: Check server reachability
+			int pingMs = matrix.ping();
+			if (pingMs < 0) {
+				logger.warning("Matrix homeserver (" + config.matrixServer + ") reachability check failed; proceeding with connection attempt...");
 			}
 
+			// Step 2: Authentication check
+			boolean authenticated = false;
+			if (token != null && !token.isEmpty()) {
+				logger.info("Access token found in access.yml, validating...");
+				matrix.setAccessToken(token);
+				if (matrix.validateToken()) {
+					logger.info("Access token validated successfully.");
+					authenticated = true;
+				} else {
+					logger.warning("Access token in access.yml is invalid or expired, clearing token...");
+					matrix.setAccessToken("");
+					authenticated = tryPasswordLogin(matrix, sender);
+				}
+			} else {
+				logger.info("No access token found, attempting password login...");
+				authenticated = tryPasswordLogin(matrix, sender);
+			}
+
+			// Step 3: Room verification & join
 			boolean connected = false;
-			if (loginSuccess && matrix.isConnected()) {
-				Bukkit.getScheduler().runTask(this, () -> {
-					tokenConfiguration.set("token", matrix.getAccessToken());
-					try {
-						tokenConfiguration.save(tokenFile);
-						if (config.getMatrixPassword() != null && !config.getMatrixPassword().isEmpty())
-							logger.info("Logged in with token and saved it to access.yml. You can now remove the password from config.yml if you wish to.");
-					} catch (IOException e) {
-						logger.log(Level.SEVERE, "Could not save token to " + tokenFile, e);
-					}
-				});
-				connected = true;
+			if (authenticated) {
+				boolean roomJoined = matrix.joinRoom(config.matrixRoomId);
+				if (roomJoined && matrix.isConnected()) {
+					Bukkit.getScheduler().runTask(this, () -> {
+						tokenConfiguration.set("token", matrix.getAccessToken());
+						try {
+							tokenConfiguration.save(tokenFile);
+							if (config.getMatrixPassword() != null && !config.getMatrixPassword().isEmpty())
+								logger.info("Logged in with token and saved it to access.yml. You can now remove the password from config.yml if you wish to.");
+						} catch (IOException e) {
+							logger.log(Level.SEVERE, "Could not save token to " + tokenFile, e);
+						}
+					});
+					connected = true;
+				} else {
+					logger.severe("Failed to join or verify room " + config.matrixRoomId + ".");
+				}
 			}
 
 			if (connected) {
@@ -221,19 +245,23 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 	private boolean tryPasswordLogin(Matrix matrix, CommandSender sender) {
 		String matrixPassword = config.getMatrixPassword();
 		if (matrixPassword != null && !matrixPassword.isEmpty()) {
+			boolean loginSuccess = false;
 			try {
-				matrix.login(matrixPassword);
+				loginSuccess = matrix.login(matrixPassword);
 			} catch (Exception e) {
 				logger.log(Level.SEVERE, "Failed to login with password: " + e.getMessage(), e);
+			}
+
+			if (!loginSuccess) {
+				logger.severe("Password authentication failed for user " + config.matrixUserId + "!");
 				if (sender instanceof Player) {
 					Bukkit.getScheduler().runTask(this, () ->
-						sender.sendMessage("§e[MatrixSpigotBridge] §cFailed to login with password: " + e.getMessage())
+						sender.sendMessage("§e[MatrixSpigotBridge] §cFailed to login with password!")
 					);
 				}
-				establishConnection = null; // task is done
 				return false;
 			}
-			return matrix.joinRoom(config.matrixRoomId);
+			return true;
 		} else {
 			logger.severe("No valid access token or password found! Please set a password in config.yml or run /msb restart to generate a new access token.");
 			if (sender != null) {
@@ -241,7 +269,6 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 					sender.sendMessage("§e[MatrixSpigotBridge] §cNo valid access token or password found! Please set a password in config.yml or run /msb restart to generate a new access token.")
 				);
 			}
-			establishConnection = null; // task is done
 			return false;
 		}
 	}

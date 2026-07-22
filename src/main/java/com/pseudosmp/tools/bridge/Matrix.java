@@ -49,7 +49,26 @@ public class Matrix {
         return Long.toString(TXN_EPOCH, 36) + "-" + Long.toString(seq, 36);
     }
 
+	public boolean validateToken() {
+		if (access_token == null || access_token.isEmpty()) {
+			return false;
+		}
+		try {
+			JSONObject whoami = new JSONObject(get("/_matrix/client/v3/account/whoami"));
+			String returnedUser = whoami.optString("user_id", "");
+			if (!returnedUser.isEmpty() && (user_id == null || user_id.isEmpty() || returnedUser.equalsIgnoreCase(user_id))) {
+				return true;
+			}
+		} catch (Exception e) {
+			plugin.getLogger().warning("Access token validation failed: " + e.getMessage());
+		}
+		return false;
+	}
+
 	public boolean login(String password) {
+		if (password == null || password.isEmpty()) {
+			return false;
+		}
 		try {
 			JSONObject login_payload = new JSONObject();
 			login_payload.put("type", "m.login.password");
@@ -59,14 +78,18 @@ public class Matrix {
 			);
 			login_payload.put("password", password);
 
-			JSONObject login_response = new JSONObject(request("POST", "/_matrix/client/v3/login", login_payload));
-			access_token = login_response.getString("access_token");
+			JSONObject login_response = new JSONObject(request("POST", "/_matrix/client/v3/login", login_payload, false));
+			if (login_response.has("access_token")) {
+				access_token = login_response.getString("access_token");
+				return true;
+			} else {
+				plugin.getLogger().severe("Login response missing access_token");
+				return false;
+			}
 		} catch (Exception e) {
 			plugin.getLogger().severe("Failed to obtain token: " + e.getMessage());
-			e.printStackTrace();
 			return false;
 		}
-		return true;
 	}
 
 	public void setAccessToken(String token) {
@@ -78,11 +101,12 @@ public class Matrix {
 	}
 
 	public boolean joinRoom(String room_id) {
-		if (user_id.isEmpty())
+		if (user_id == null || user_id.isEmpty() || room_id == null || room_id.isEmpty() || access_token == null || access_token.isEmpty())
 			return false;
 
 		this.room_id = room_id;
 
+		boolean inRoom = false;
 		// Check membership of bot in room
 		try {
 			JSONObject membershipState = new JSONObject(
@@ -92,23 +116,21 @@ public class Matrix {
 			String membership = membershipState.optString("membership", "");
 			if ("join".equals(membership)) {
 				plugin.getLogger().info("Already in room " + room_id);
-			} else {
-				// Not joined -> try to join
-				try {
-					request("POST", "/_matrix/client/v3/rooms/" + room_id + "/join", new JSONObject());
-					plugin.getLogger().info("Joined room " + room_id);
-				} catch (Exception e) {
-					plugin.getLogger().warning("Failed to join room: " + e.getMessage());
-				}
+				inRoom = true;
 			}
 		} catch (Exception e) {
-			// If membership lookup fails, attempt join anyway
-			plugin.getLogger().info("Membership check failed, attempting join...");
+			plugin.getLogger().info("Membership check info: " + e.getMessage());
+		}
+
+		if (!inRoom) {
+			// Not joined -> try to join
 			try {
 				request("POST", "/_matrix/client/v3/rooms/" + room_id + "/join", new JSONObject());
 				plugin.getLogger().info("Joined room " + room_id);
-			} catch (Exception e2) {
-				plugin.getLogger().warning("Failed to join room: " + e2.getMessage());
+				inRoom = true;
+			} catch (Exception e) {
+				plugin.getLogger().severe("Failed to join room " + room_id + ": " + e.getMessage());
+				return false;
 			}
 		}
 
@@ -142,7 +164,7 @@ public class Matrix {
 
 			room_filters = URLEncoder.encode(roomFilters.toString(), "UTF-8");
 		} catch (Exception e) {
-			e.printStackTrace();
+			plugin.getLogger().severe("Failed to construct room filters: " + e.getMessage());
 			return false;
 		}
 
@@ -150,7 +172,8 @@ public class Matrix {
 		try {
 			getLastMessages();
 		} catch (Exception e) {
-			e.printStackTrace();
+			plugin.getLogger().warning("Initial room sync failed: " + e.getMessage());
+			return false;
 		}
 
 		return true;
@@ -202,15 +225,25 @@ public class Matrix {
 			+ (room_history_token.isEmpty() ? "" : "&since=" + this.room_history_token)
 		, new JSONObject(), true));
 
-		this.room_history_token = raw_result.getString("next_batch");
+		if (raw_result.has("next_batch")) {
+			this.room_history_token = raw_result.getString("next_batch");
+		}
 
-		JSONObject room_data = raw_result.getJSONObject("rooms").getJSONObject("join");
-
-		if (room_data.has(room_id)) {
-			result = room_data
-				.getJSONObject(room_id)
-				.getJSONObject("timeline")
-				.getJSONArray("events");
+		JSONObject room_data = raw_result.optJSONObject("rooms");
+		if (room_data != null) {
+			JSONObject join_data = room_data.optJSONObject("join");
+			if (join_data != null && join_data.has(room_id)) {
+				JSONObject roomObj = join_data.optJSONObject(room_id);
+				if (roomObj != null) {
+					JSONObject timelineObj = roomObj.optJSONObject("timeline");
+					if (timelineObj != null) {
+						JSONArray eventsArr = timelineObj.optJSONArray("events");
+						if (eventsArr != null) {
+							result = eventsArr;
+						}
+					}
+				}
+			}
 		}
 
 		return result;
@@ -280,13 +313,15 @@ public class Matrix {
 	}
 
 	public boolean isConnected() {
-		try {
-			get("/_matrix/client/v3/rooms/" + room_id + "/state");
-		} catch (Exception e) {
-			e.printStackTrace();
+		if (access_token == null || access_token.isEmpty() || room_id == null || room_id.isEmpty()) {
 			return false;
 		}
-		return true;
+		try {
+			get("/_matrix/client/v3/rooms/" + room_id + "/state");
+			return true;
+		} catch (Exception e) {
+			return false;
+		}
 	}
 
 	protected String get(String url) throws Exception {
