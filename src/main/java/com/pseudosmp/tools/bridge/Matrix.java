@@ -343,7 +343,7 @@ public class Matrix {
 		if (addBearer && !access_token.isEmpty())
 			con.setRequestProperty("Authorization", "Bearer " + access_token);
 
-		con.setRequestProperty("Content-Type", "application/json; utf-8");
+		con.setRequestProperty("Content-Type", "application/json");
 		con.setRequestProperty("Accept", "application/json");
 		con.setDoOutput(true);
 
