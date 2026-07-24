@@ -5,7 +5,7 @@
 
 common:
     # Do not touch this!
-    configVersion: 2.4.0
+    configVersion: 2.7.0
 
     # Set this value to true to use placeholders in all formats messages 
     # IMPORTANT: Requires PlaceholderAPI to be installed if set to true!
@@ -76,11 +76,13 @@ matrix:
 # while Minecraft-bound messages should use Minecraft color codes (e.g. §a for green).
 format:
     # Player-related events (join, quit, chat, death)
-    # {PLAYERNAME} is the displayed player name, {MESSAGE} is the default event message
+    # {PLAYERNAME} is the displayed player name, {OLD_NAME} is the former name (for name changes), {MESSAGE} is the default event message
     # For chat, {MESSAGE} is the message sent by user
     # Minecraft -> Matrix Chat
     player:
         join: '➕ {MESSAGE}'
+        join_name_changed: '➕ {MESSAGE}'
+        first_join: '➕ {MESSAGE}'
         quit: '➖ {MESSAGE}'
         death: '🪦 {MESSAGE}'
         chat: '<<b>{PLAYERNAME}</b>> {MESSAGE}'
