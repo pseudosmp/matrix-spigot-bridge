@@ -54,6 +54,10 @@ public class ReloadConfig implements CommandExecutor {
             plugin.updateRoomTopicAsync(success -> {});
         }
 
+        if (plugin.getServerWatchdog() != null) {
+            plugin.getServerWatchdog().reload();
+        }
+
         sender.sendMessage("§e[MatrixSpigotBridge] §aConfiguration reloaded.");
         return true;
     }

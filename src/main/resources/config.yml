@@ -110,6 +110,24 @@ format:
     # Instead of changing in order, select randomly from the list above
     randomize_topic: true
     
+    # Server Watchdog ("Owner, the server room is on 🔥!!", inspired by DiscordSRV)
+    # Notifies Matrix chat if the Minecraft server main thread stops ticking for longer than specified.
+    watchdog:
+        # Enable or disable the watchdog monitor
+        enabled: true
+        # Time in seconds after which a server hang triggers a watchdog alert
+        timeout: 30
+        # Number of times to send the freeze notification (one per second) while frozen (1 = send once, 0 to disable)
+        repeat_notification: 2
+        # Send a notification in Matrix when the server resumes ticking after a freeze alert
+        notify_recovery: true
+        # Watchdog alert message format (Minecraft -> Matrix)
+        # Placeholders: {TIMEOUT}
+        freeze: '<b>The server room is on 🔥‼️</b> (Server hasn''t ticked in {TIMEOUT} seconds)'
+        # Recovery notification message format (Minecraft -> Matrix)
+        # Placeholders: {LAG_TIME}, {TIMEOUT}
+        recovery: '🧯🔥 Server resumed ticking after {LAG_TIME} seconds.'
+
     # Server events (start, stop)
     # Minecraft -> Matrix Chat
     server:

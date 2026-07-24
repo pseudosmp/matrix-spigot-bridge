@@ -204,6 +204,14 @@ public class ConfigUtils {
         return false; // Default to false if not set or not a boolean
     }
 
+    public int getFormatSettingInt(String key, int defaultValue) {
+        Object value = format.get(key);
+        if (value instanceof Number) {
+            return ((Number) value).intValue();
+        }
+        return defaultValue;
+    }
+
     public String getFormat(String key) {
         Object value = format.get(key);
         return value != null ? value.toString() : "";

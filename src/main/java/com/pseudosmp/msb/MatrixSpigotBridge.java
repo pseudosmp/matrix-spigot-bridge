@@ -27,6 +27,7 @@ import com.pseudosmp.tools.bridge.commands.MatrixCommandHandler;
 import com.pseudosmp.tools.game.MinecraftChatListener;
 import com.pseudosmp.tools.game.PlayerEventsListener;
 import com.pseudosmp.tools.game.ConfigUtils;
+import com.pseudosmp.tools.game.ServerWatchdog;
 import com.pseudosmp.tools.formatting.MessageFormatter;
 import com.pseudosmp.tools.integrations.IntegrationManager;
 
@@ -43,6 +44,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 	private BukkitTask establishConnection;
 	private BukkitTask matrixPollerTask;
 	private BukkitTask topicUpdaterTask;
+	private ServerWatchdog serverWatchdog;
 
 	public static ConfigUtils config;
 	private Matrix matrix;
@@ -51,6 +53,10 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 
 	public Matrix getMatrix() {
 		return matrix;
+	}
+
+	public ServerWatchdog getServerWatchdog() {
+		return serverWatchdog;
 	}
 	
 	public static JavaPlugin getInstance() {
@@ -332,6 +338,9 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 	}
 
 	private void cancelAllTasks() {
+		if (serverWatchdog != null) {
+			serverWatchdog.stop();
+		}
 		if (matrixPollerTask != null) {
 			try {
 				matrixPollerTask.cancel();
@@ -461,6 +470,10 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 			Metrics metrics = new Metrics(this, 26323);
 			logger.info("bstats for MatrixSpigotBridge has been enabled. You can opt-out by disabling bstats in the plugin config.");
 		}
+
+		// Initialize server watchdog
+		serverWatchdog = new ServerWatchdog(this);
+		serverWatchdog.start();
 		
 		// Connect to Matrix Server
 		if (!config.isFirstRun) {
@@ -482,6 +495,9 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 
 	@Override
 	public void onDisable() {
+		if (serverWatchdog != null) {
+			serverWatchdog.stop();
+		}
 		String stop_message = config.getFormat("server.stop");
 		if (!stop_message.isEmpty() && matrix != null) {
 			final String msg = formatter.replaceTimePlaceholders(stop_message);
