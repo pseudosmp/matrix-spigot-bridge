@@ -499,18 +499,36 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 			serverWatchdog.stop();
 		}
 		String stop_message = config.getFormat("server.stop");
-		if (!stop_message.isEmpty() && matrix != null) {
-			final String msg = formatter.replaceTimePlaceholders(stop_message);
+		String shutdown_topic = config.getFormat("room_topic_shutdown");
+		if ((!stop_message.isEmpty() || !shutdown_topic.isEmpty()) && matrix != null) {
+			final String msg = !stop_message.isEmpty() ? formatter.replaceTimePlaceholders(stop_message) : null;
+			final String formattedTopic;
+			if (!shutdown_topic.isEmpty()) {
+				String topic = shutdown_topic;
+				if (config.canUsePapi) {
+					topic = formatter.replacePlaceholderAPI(null, topic);
+					topic = formatter.stripMinecraftColors(topic);
+				}
+				formattedTopic = formatter.replaceTimePlaceholders(topic);
+			} else {
+				formattedTopic = null;
+			}
+
 			Thread shutdownThread = new Thread(() -> {
 				try {
-					matrix.postMessage(msg);
+					if (msg != null) {
+						matrix.postMessage(msg);
+					}
+					if (formattedTopic != null) {
+						matrix.setRoomTopic(formattedTopic);
+					}
 				} catch (Exception ignored) {}
 			});
 			shutdownThread.start();
 			try {
-				shutdownThread.join(5000); // Wait up to 5 seconds for the message to send
+				shutdownThread.join(5000); // Wait up to 5 seconds for shutdown actions to send
 				if (shutdownThread.isAlive()) {
-					logger.warning("Shutdown message did not send in time, forcefully disabling...");
+					logger.warning("Shutdown actions did not complete in time, forcefully disabling...");
 					cancelAllTasks();
 					shutdownThread.interrupt();
 				}

@@ -109,6 +109,10 @@ format:
         - 'What happens in the dark ALWAYS comes to light 🤡'
     # Instead of changing in order, select randomly from the list above
     randomize_topic: true
+
+    # Set the room's topic when the Minecraft server shuts down.
+    # Leave empty '' to disable updating topic on shutdown.
+    room_topic_shutdown: ''
     
     # Server Watchdog ("Owner, the server room is on 🔥!!", inspired by DiscordSRV)
     # Notifies Matrix chat if the Minecraft server main thread stops ticking for longer than specified.
