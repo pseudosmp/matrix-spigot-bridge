@@ -1,11 +1,13 @@
 package com.pseudosmp.tools.game;
 
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.*;
 
 import com.pseudosmp.msb.BaseListener;
 import com.pseudosmp.msb.MatrixSpigotBridge;
+import com.pseudosmp.tools.integrations.IntegrationManager;
 
 public class PlayerEventsListener extends BaseListener {
 	public PlayerEventsListener(MatrixSpigotBridge plugin) {
@@ -14,11 +16,12 @@ public class PlayerEventsListener extends BaseListener {
 
 	ConfigUtils config = MatrixSpigotBridge.config;
 	
-	@EventHandler
+	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void playerJoined(PlayerJoinEvent evt) {
     	String message = evt.getJoinMessage();
-        if (message == null)
-        	message = "";
+        if (message == null || message.isEmpty() || IntegrationManager.isVanished(evt.getPlayer())) {
+        	return;
+        }
 
         sendMatrixMessage(
     		config.getFormat("player.join"),
@@ -27,12 +30,13 @@ public class PlayerEventsListener extends BaseListener {
 		);
     }
 
-	@EventHandler
+	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void playerQuit(PlayerQuitEvent evt) {
     	String message = evt.getQuitMessage();
-        if (message == null)
-        	message = "";
-        
+        if (message == null || message.isEmpty() || IntegrationManager.isVanished(evt.getPlayer())) {
+        	return;
+        }
+
         sendMatrixMessage(
     		config.getFormat("player.quit"),
     		message,
@@ -40,11 +44,12 @@ public class PlayerEventsListener extends BaseListener {
 		);
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void playerDied(PlayerDeathEvent evt) {
     	String message = evt.getDeathMessage();
-        if (message == null)
-        	message = "";
+        if (message == null || message.isEmpty() || IntegrationManager.isVanished(evt.getEntity())) {
+        	return;
+        }
 
         sendMatrixMessage(
     		config.getFormat("player.death"),

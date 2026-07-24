@@ -28,6 +28,7 @@ import com.pseudosmp.tools.game.MinecraftChatListener;
 import com.pseudosmp.tools.game.PlayerEventsListener;
 import com.pseudosmp.tools.game.ConfigUtils;
 import com.pseudosmp.tools.formatting.MessageFormatter;
+import com.pseudosmp.tools.integrations.IntegrationManager;
 
 import org.bstats.bukkit.Metrics;
 
@@ -448,6 +449,9 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 			logger.severe("Failed to load config.yml! Please check the console for errors.");
 			return;
 		}
+
+		// Initialize third-party plugin integrations
+		IntegrationManager.setupIntegrations(logger);
 
 		// Initialize message formatter
 		formatter = new MessageFormatter(logger, config.canUsePapi);
