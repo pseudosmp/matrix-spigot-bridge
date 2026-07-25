@@ -265,21 +265,34 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 		boolean topicShutdownActive = !config.getFormat("room_topic_shutdown").isEmpty();
 
 		if (topicUpdateActive || topicShutdownActive) {
+			java.util.Set<String> targetRooms = new java.util.LinkedHashSet<>();
 			String chatRoomId = config.getRoomIdForPurpose(MessagePurpose.CHAT);
-			int botLevel = matrix.getBotPowerLevel(chatRoomId);
-			int requiredLevel = matrix.getRequiredPowerLevelForState(chatRoomId, "m.room.topic");
+			if (chatRoomId != null && !chatRoomId.trim().isEmpty()) {
+				targetRooms.add(chatRoomId.trim());
+			}
+			if (config.matrixRoomId != null && !config.matrixRoomId.trim().isEmpty()) {
+				targetRooms.add(config.matrixRoomId.trim());
+			}
 
-			if (botLevel >= 0 && botLevel < requiredLevel) {
-				String roomName = matrix.getRoomDisplayName(chatRoomId);
-				String warnMsg = "Room topic updating is enabled, but bot user power level (" + botLevel +
-						") in " + roomName + " is lower than required state level (" + requiredLevel +
-						"). Topic updates will fail unless the bot is granted Moderator (level " + requiredLevel + "+) in Matrix room settings.";
+			for (String rId : targetRooms) {
+				if (!matrix.getJoinedRoomIds().contains(rId)) {
+					continue; // Do not check privileges before joining room
+				}
+				int botLevel = matrix.getBotPowerLevel(rId);
+				int requiredLevel = matrix.getRequiredPowerLevelForState(rId, "m.room.topic");
 
-				logger.warning(warnMsg);
-				if (sender != null) {
-					Bukkit.getScheduler().runTask(this, () ->
-						sender.sendMessage("§e[MatrixSpigotBridge] §cWarning: " + warnMsg)
-					);
+				if (botLevel >= 0 && botLevel < requiredLevel) {
+					String roomName = matrix.getRoomDisplayName(rId);
+					String warnMsg = "Room topic updating is enabled, but bot user power level (" + botLevel +
+							") in " + roomName + " is lower than required state level (" + requiredLevel +
+							"). Topic updates will fail unless the bot is granted Moderator (level " + requiredLevel + "+) in Matrix room settings.";
+
+					logger.warning(warnMsg);
+					if (sender != null) {
+						Bukkit.getScheduler().runTask(this, () ->
+							sender.sendMessage("§e[MatrixSpigotBridge] §cWarning: " + warnMsg)
+						);
+					}
 				}
 			}
 		}
@@ -505,7 +518,9 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 		getCommand("msb").setTabCompleter(msbCommand);
 
 		if (!config.load()) {
-			logger.severe("Failed to load config.yml! Please check the console for errors.");
+			if (!config.isFirstRun) {
+				logger.severe("Failed to load config.yml! Please check the console for errors.");
+			}
 			return;
 		}
 

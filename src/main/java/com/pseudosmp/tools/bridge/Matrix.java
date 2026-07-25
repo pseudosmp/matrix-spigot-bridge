@@ -670,10 +670,12 @@ public class Matrix {
 			} catch (Exception ignored) {
 			}
 
-			String userSolution = buildUserSolution(statusCode, errcode, errorMsg, url);
+			String userSolution = buildUserSolution(statusCode, errcode, errorMsg, url, proto);
 
 			plugin.getLogger().warning("Matrix API Error (" + statusCode + "): " + rawErrorStr);
-			plugin.getLogger().warning("-> Solution: " + userSolution);
+			if (userSolution != null && !userSolution.trim().isEmpty()) {
+				plugin.getLogger().warning("-> Solution: " + userSolution);
+			}
 
 			throw new MatrixApiException(statusCode, errcode, errorMsg, userSolution,
 					"Server returned HTTP response code: " + statusCode +
@@ -683,21 +685,25 @@ public class Matrix {
 		return response.toString();
 	}
 
-	private String buildUserSolution(int statusCode, String errcode, String errorMsg, String url) {
+	private String buildUserSolution(int statusCode, String errcode, String errorMsg, String url, String proto) {
 		if (statusCode == 403 || "M_FORBIDDEN".equalsIgnoreCase(errcode)) {
-			if (url.contains("/state/m.room.topic") || url.contains("/state/")) {
-				return "Permission Denied: The bot user does not have permission to modify room state/topic in Matrix. Please grant Moderator privileges (power level 50+) to the bot user in Matrix room settings.";
+			if ("PUT".equalsIgnoreCase(proto) && url.contains("/state/m.room.topic")) {
+				return "Permission Denied: The bot user does not have permission to modify room topic in Matrix. Please grant Moderator privileges (power level 50+) to the bot user in Matrix room settings.";
 			}
-			return "Permission Denied: The bot user lacks permission to perform this action in Matrix. Please check power levels and user privileges in Matrix room settings.";
+			if (url.contains("/knock/") || (errorMsg != null && errorMsg.toLowerCase().contains("knock"))) {
+				return "Knock Denied: The room does not accept knock requests (join rule is not set to 'knock') or knocking is disabled in Matrix room settings.";
+			}
+			if (errorMsg != null && errorMsg.toLowerCase().contains("power level")) {
+				return "Permission Denied: The bot user lacks required power level to perform this action in Matrix. Please check user power levels in Matrix room settings.";
+			}
+			return null;
 		} else if (statusCode == 401 || "M_UNAUTHORIZED".equalsIgnoreCase(errcode)) {
 			return "Unauthorized: Invalid or expired access token. Please verify 'matrix_access_token' in config.yml or re-authenticate using /msb reload.";
 		} else if (statusCode == 404 || "M_NOT_FOUND".equalsIgnoreCase(errcode)) {
 			return "Not Found: Requested room or endpoint was not found on the Matrix homeserver. Please verify configured room IDs in config.yml.";
 		} else if (statusCode == 429 || "M_LIMIT_EXCEEDED".equalsIgnoreCase(errcode)) {
 			return "Rate Limited: Homeserver rate limit exceeded. Please adjust homeserver rate limits or lower sync/poll frequency.";
-		} else {
-			return "Matrix API call failed (" + (!errcode.isEmpty() ? errcode : ("HTTP " + statusCode))
-					+ "). Please check Matrix homeserver logs and configuration.";
 		}
+		return null;
 	}
 }
