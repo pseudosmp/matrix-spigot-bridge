@@ -16,7 +16,7 @@ public class MinecraftChatListener extends BaseListener {
 
 	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void messageReceived(AsyncPlayerChatEvent evt) {
-        if (evt.isCancelled() || IntegrationManager.isMuted(evt.getPlayer())) {
+        if (evt.isCancelled() || IntegrationManager.isMuted(evt.getPlayer()) || IntegrationManager.isInTeamChat(evt.getPlayer())) {
             return;
         }
 

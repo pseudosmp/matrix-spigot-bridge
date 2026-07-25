@@ -8,18 +8,22 @@ import org.bukkit.entity.Player;
 import org.bukkit.metadata.MetadataValue;
 
 import com.pseudosmp.tools.integrations.hooks.MuteHook;
+import com.pseudosmp.tools.integrations.hooks.TeamChatHook;
 import com.pseudosmp.tools.integrations.hooks.VanishHook;
+import com.pseudosmp.tools.integrations.plugins.betterteams.BetterTeamsIntegration;
 import com.pseudosmp.tools.integrations.plugins.essentials.EssentialsIntegration;
 
 public class IntegrationManager {
     private static final List<PluginIntegration> integrations = new ArrayList<>();
     private static final List<VanishHook> vanishHooks = new ArrayList<>();
     private static final List<MuteHook> muteHooks = new ArrayList<>();
+    private static final List<TeamChatHook> teamChatHooks = new ArrayList<>();
 
     public static void setupIntegrations(Logger logger) {
         integrations.clear();
         vanishHooks.clear();
         muteHooks.clear();
+        teamChatHooks.clear();
 
         // Register EssentialsX integration
         try {
@@ -36,6 +40,23 @@ public class IntegrationManager {
         } catch (Throwable t) {
             if (logger != null) {
                 logger.warning("Could not initialize EssentialsX integration: " + t.getMessage());
+            }
+        }
+
+        // Register BetterTeams integration
+        try {
+            BetterTeamsIntegration betterTeams = new BetterTeamsIntegration();
+            betterTeams.setup();
+            if (betterTeams.isEnabled()) {
+                integrations.add(betterTeams);
+                teamChatHooks.add(betterTeams);
+                if (logger != null) {
+                    logger.info("Hooked into BetterTeams for Team Chat status detection.");
+                }
+            }
+        } catch (Throwable t) {
+            if (logger != null) {
+                logger.warning("Could not initialize BetterTeams integration: " + t.getMessage());
             }
         }
     }
@@ -71,6 +92,20 @@ public class IntegrationManager {
 
         for (MuteHook hook : muteHooks) {
             if (hook.isMuted(player)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public static boolean isInTeamChat(Player player) {
+        if (player == null) {
+            return false;
+        }
+
+        for (TeamChatHook hook : teamChatHooks) {
+            if (hook.isInTeamChat(player)) {
                 return true;
             }
         }

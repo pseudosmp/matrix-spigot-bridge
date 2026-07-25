@@ -4,7 +4,7 @@ main: com.pseudosmp.msb.MatrixSpigotBridge
 version: ${project.version}
 description: ${project.description}
 api-version: 1.13
-softdepend: [PlaceholderAPI]
+softdepend: [PlaceholderAPI, Essentials, BetterTeams]
 commands:
   msb:
     description: Main command for MatrixSpigotBridge
