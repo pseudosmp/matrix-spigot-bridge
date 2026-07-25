@@ -1,12 +1,14 @@
 package com.pseudosmp.tools.scheduler;
 
 import org.bukkit.Bukkit;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.lang.reflect.Method;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.logging.Level;
 
 public class SchedulerAdapter {
     private static final boolean IS_FOLIA;
@@ -26,11 +28,11 @@ public class SchedulerAdapter {
             getAsyncSchedulerMethod = Bukkit.class.getMethod("getAsyncScheduler");
             getGlobalRegionSchedulerMethod = Bukkit.class.getMethod("getGlobalRegionScheduler");
 
-            asyncRunNowMethod = asyncSchedulerClass.getMethod("runNow", JavaPlugin.class, Consumer.class);
-            asyncRunAtFixedRateMethod = asyncSchedulerClass.getMethod("runAtFixedRate", JavaPlugin.class, Consumer.class, long.class, long.class, TimeUnit.class);
+            asyncRunNowMethod = asyncSchedulerClass.getMethod("runNow", Plugin.class, Consumer.class);
+            asyncRunAtFixedRateMethod = asyncSchedulerClass.getMethod("runAtFixedRate", Plugin.class, Consumer.class, long.class, long.class, TimeUnit.class);
 
-            globalRunMethod = globalSchedulerClass.getMethod("run", JavaPlugin.class, Consumer.class);
-            globalRunAtFixedRateMethod = globalSchedulerClass.getMethod("runAtFixedRate", JavaPlugin.class, Consumer.class, long.class, long.class);
+            globalRunMethod = globalSchedulerClass.getMethod("run", Plugin.class, Consumer.class);
+            globalRunAtFixedRateMethod = globalSchedulerClass.getMethod("runAtFixedRate", Plugin.class, Consumer.class, long.class, long.class);
 
             isFolia = true;
         } catch (Throwable ignored) {
@@ -55,8 +57,8 @@ public class SchedulerAdapter {
                     } catch (Exception ignored) {}
                 };
             } catch (Exception e) {
-                BukkitTask bt = Bukkit.getScheduler().runTaskAsynchronously(plugin, task);
-                return bt::cancel;
+                plugin.getLogger().log(Level.SEVERE, "Failed to run Folia async task", e);
+                return () -> {};
             }
         } else {
             BukkitTask bt = Bukkit.getScheduler().runTaskAsynchronously(plugin, task);
@@ -76,8 +78,8 @@ public class SchedulerAdapter {
                     } catch (Exception ignored) {}
                 };
             } catch (Exception e) {
-                BukkitTask bt = Bukkit.getScheduler().runTask(plugin, task);
-                return bt::cancel;
+                plugin.getLogger().log(Level.SEVERE, "Failed to run Folia global task", e);
+                return () -> {};
             }
         } else {
             BukkitTask bt = Bukkit.getScheduler().runTask(plugin, task);
@@ -99,8 +101,8 @@ public class SchedulerAdapter {
                     } catch (Exception ignored) {}
                 };
             } catch (Exception e) {
-                BukkitTask bt = Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, task, initialDelayTicks, periodTicks);
-                return bt::cancel;
+                plugin.getLogger().log(Level.SEVERE, "Failed to run Folia async timer task", e);
+                return () -> {};
             }
         } else {
             BukkitTask bt = Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, task, initialDelayTicks, periodTicks);
@@ -120,8 +122,8 @@ public class SchedulerAdapter {
                     } catch (Exception ignored) {}
                 };
             } catch (Exception e) {
-                BukkitTask bt = Bukkit.getScheduler().runTaskTimer(plugin, task, initialDelayTicks, periodTicks);
-                return bt::cancel;
+                plugin.getLogger().log(Level.SEVERE, "Failed to run Folia global timer task", e);
+                return () -> {};
             }
         } else {
             BukkitTask bt = Bukkit.getScheduler().runTaskTimer(plugin, task, initialDelayTicks, periodTicks);
@@ -134,3 +136,4 @@ public class SchedulerAdapter {
         void cancel();
     }
 }
+
