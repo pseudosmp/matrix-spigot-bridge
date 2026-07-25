@@ -38,8 +38,8 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>com.github.booksaw</groupId>
-            <artifactId>BetterTeams</artifactId>
+            <groupId>com.github.booksaw.BetterTeams</groupId>
+            <artifactId>betterteams</artifactId>
             <version>5.1.4</version>
             <scope>provided</scope>
         </dependency>
