@@ -4,6 +4,7 @@ main: com.pseudosmp.msb.MatrixSpigotBridge
 version: ${project.version}
 description: ${project.description}
 api-version: 1.13
+folia-supported: true
 softdepend: [PlaceholderAPI, Essentials, BetterTeams]
 commands:
   msb:

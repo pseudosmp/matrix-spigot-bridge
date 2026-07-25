@@ -2,8 +2,7 @@ package com.pseudosmp.tools.game;
 
 import com.pseudosmp.msb.MatrixSpigotBridge;
 import com.pseudosmp.tools.bridge.MessagePurpose;
-import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.scheduler.BukkitTask;
+import com.pseudosmp.tools.scheduler.SchedulerAdapter;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -12,7 +11,7 @@ import java.util.concurrent.TimeUnit;
 public class ServerWatchdog {
     private final MatrixSpigotBridge plugin;
 
-    private BukkitTask tickTask;
+    private SchedulerAdapter.TaskWrapper tickTask;
     private ScheduledExecutorService watchdogExecutor;
 
     private volatile long lastTickTimestamp;
@@ -32,12 +31,7 @@ public class ServerWatchdog {
         notificationsSentCount = 0;
 
         // Synchronous tick task updating lastTickTimestamp every 10 ticks (0.5 seconds)
-        tickTask = new BukkitRunnable() {
-            @Override
-            public void run() {
-                onTick();
-            }
-        }.runTaskTimer(plugin, 10L, 10L);
+        tickTask = SchedulerAdapter.runGlobalTimer(plugin, this::onTick, 10L, 10L);
 
         // Async monitor running every 1 second
         watchdogExecutor = Executors.newSingleThreadScheduledExecutor(r -> {
@@ -52,7 +46,7 @@ public class ServerWatchdog {
         if (tickTask != null) {
             try {
                 tickTask.cancel();
-            } catch (IllegalStateException ignored) {}
+            } catch (Exception ignored) {}
             tickTask = null;
         }
         if (watchdogExecutor != null) {
