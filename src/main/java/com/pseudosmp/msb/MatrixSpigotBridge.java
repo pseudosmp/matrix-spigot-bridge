@@ -3,6 +3,7 @@ package com.pseudosmp.msb;
 import java.io.File;
 import java.io.IOException;
 import java.util.logging.Level;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -270,11 +271,13 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 	public void checkAndWarnRoomPowerLevels(CommandSender sender) {
 		if (matrix == null) return;
 
-		boolean topicUpdateActive = config.matrixTopicUpdateInterval > -1 && config.matrixRoomTopicPool != null && !config.matrixRoomTopicPool.isEmpty();
-		boolean topicShutdownActive = !config.getFormat("room_topic_shutdown").isEmpty();
+		boolean topicUpdateActive = config.matrixTopicUpdateInterval > -1 && config.hasAnyRoomTopicPool();
+		boolean topicShutdownActive = config.hasAnyRoomTopicShutdown();
 
 		if (topicUpdateActive || topicShutdownActive) {
 			java.util.Set<String> targetRooms = new java.util.LinkedHashSet<>();
+			targetRooms.addAll(config.getRoomTopicsByRoomId().keySet());
+			targetRooms.addAll(config.getShutdownTopicsByRoomId().keySet());
 			String chatRoomId = config.getRoomIdForPurpose(MessagePurpose.CHAT);
 			if (chatRoomId != null && !chatRoomId.trim().isEmpty()) {
 				targetRooms.add(chatRoomId.trim());
@@ -348,40 +351,47 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 		}
 		config.nextTopicIndex = 0;
 		BukkitRunnable roomTopicUpdater = new BukkitRunnable() {
+			private final java.util.Map<String, Integer> nextTopicIndices = new java.util.HashMap<>();
+
 			@Override
 			public void run() {
 				boolean randomize = config.getFormatSettingBool("randomize_topic");
-				String room_topic = null;
+				Map<String, List<String>> roomTopics = config.getRoomTopicsByRoomId();
+				boolean overallSuccess = true;
 
-				if (config.matrixRoomTopicPool != null && !config.matrixRoomTopicPool.isEmpty()) {
+				for (Map.Entry<String, List<String>> entry : roomTopics.entrySet()) {
+					String rId = entry.getKey();
+					List<String> pool = entry.getValue();
+					if (rId == null || rId.isEmpty() || pool == null || pool.isEmpty()) continue;
+
+					String room_topic;
 					if (randomize) {
-						int idx = (int) (Math.random() * config.matrixRoomTopicPool.size());
-						room_topic = config.matrixRoomTopicPool.get(idx);
+						int idx = (int) (Math.random() * pool.size());
+						room_topic = pool.get(idx);
 					} else {
-						room_topic = config.matrixRoomTopicPool.get(config.nextTopicIndex);
-						config.nextTopicIndex = (config.nextTopicIndex + 1) % config.matrixRoomTopicPool.size();
+						int idx = nextTopicIndices.getOrDefault(rId, 0);
+						room_topic = pool.get(idx % pool.size());
+						nextTopicIndices.put(rId, (idx + 1) % pool.size());
+					}
+
+					if (room_topic != null && !room_topic.isEmpty()) {
+						if (config.canUsePapi) {
+							room_topic = formatter.replacePlaceholderAPI(null, room_topic);
+							room_topic = formatter.stripMinecraftColors(room_topic);
+						}
+						boolean res = matrix.setRoomTopic(rId, room_topic);
+						if (!res) overallSuccess = false;
 					}
 				}
 
-				final boolean success;
-				if (room_topic != null && !room_topic.isEmpty()) {
-					// Room topic processing
-					if (config.canUsePapi) {
-						room_topic = formatter.replacePlaceholderAPI(null, room_topic);
-						room_topic = formatter.stripMinecraftColors(room_topic);
-					}
-					String chatRoomId = config.getRoomIdForPurpose(MessagePurpose.CHAT);
-					success = matrix.setRoomTopic(chatRoomId, room_topic);
-				} else {
-					success = true;
-				}
+				final boolean success = overallSuccess;
 				// Notify callback on main thread
 				if (callback != null) {
 					Bukkit.getScheduler().runTask(MatrixSpigotBridge.this, () -> callback.accept(success));
 				}
 			}
 		};
-		if (config.matrixTopicUpdateInterval > 0 && !config.getFormat("room_topic").isEmpty()) {
+		if (config.matrixTopicUpdateInterval > 0 && config.hasAnyRoomTopicPool()) {
 			Bukkit.getScheduler().runTask(this, () -> {
 				topicUpdaterTask = roomTopicUpdater.runTaskTimerAsynchronously(this, 0, config.matrixTopicUpdateInterval * 60 * 20);
 			});
@@ -389,11 +399,11 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 			// If no topic update interval is set, run once immediately
 			topicUpdaterTask = roomTopicUpdater.runTaskAsynchronously(this);
 		} else if (config.matrixTopicUpdateInterval < 0) {
-            // If negative, do not run the task, just callback true
-            if (callback != null) {
-                Bukkit.getScheduler().runTask(this, () -> callback.accept(true));
-            }
-        }
+			// If negative, do not run the task, just callback true
+			if (callback != null) {
+				Bukkit.getScheduler().runTask(this, () -> callback.accept(true));
+			}
+		}
 	}
 
 	private void cancelAllTasks() {
@@ -573,19 +583,21 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 			serverWatchdog.stop();
 		}
 		String stop_message = config.getFormat("server.stop");
-		String shutdown_topic = config.getFormat("room_topic_shutdown");
-		if ((!stop_message.isEmpty() || !shutdown_topic.isEmpty()) && matrix != null) {
+		Map<String, String> shutdownTopics = config.getShutdownTopicsByRoomId();
+		if ((!stop_message.isEmpty() || !shutdownTopics.isEmpty()) && matrix != null) {
 			final String msg = !stop_message.isEmpty() ? formatter.replaceTimePlaceholders(stop_message) : null;
-			final String formattedTopic;
-			if (!shutdown_topic.isEmpty()) {
-				String topic = shutdown_topic;
-				if (config.canUsePapi) {
-					topic = formatter.replacePlaceholderAPI(null, topic);
-					topic = formatter.stripMinecraftColors(topic);
+			final Map<String, String> formattedShutdownTopics = new java.util.HashMap<>();
+			for (Map.Entry<String, String> entry : shutdownTopics.entrySet()) {
+				String rId = entry.getKey();
+				String topic = entry.getValue();
+				if (topic != null && !topic.isEmpty()) {
+					if (config.canUsePapi) {
+						topic = formatter.replacePlaceholderAPI(null, topic);
+						topic = formatter.stripMinecraftColors(topic);
+					}
+					topic = formatter.replaceTimePlaceholders(topic);
+					formattedShutdownTopics.put(rId, topic);
 				}
-				formattedTopic = formatter.replaceTimePlaceholders(topic);
-			} else {
-				formattedTopic = null;
 			}
 
 			Thread shutdownThread = new Thread(() -> {
@@ -594,9 +606,8 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 						String serverRoomId = config.getRoomIdForPurpose(MessagePurpose.SERVER);
 						matrix.postMessage(serverRoomId, msg);
 					}
-					if (formattedTopic != null) {
-						String chatRoomId = config.getRoomIdForPurpose(MessagePurpose.CHAT);
-						matrix.setRoomTopic(chatRoomId, formattedTopic);
+					for (Map.Entry<String, String> entry : formattedShutdownTopics.entrySet()) {
+						matrix.setRoomTopic(entry.getKey(), entry.getValue());
 					}
 				} catch (Exception ignored) {}
 			});

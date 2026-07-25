@@ -64,7 +64,7 @@ public class RestartBridge implements CommandExecutor {
                     plugin.getLogger().warning("Failed to fetch initial sync messages during restart: " + e.getMessage());
                 }
                 plugin.sendMessageToMatrix(config.getFormat("server.reconnect"), "", null);
-                if (config.matrixTopicUpdateInterval > -1 && !config.getFormat("room_topic").isEmpty()) {
+                if (config.matrixTopicUpdateInterval > -1 && config.hasAnyRoomTopicPool()) {
                     plugin.updateRoomTopicAsync(success1 -> {
                         if (!success1 && sender != null) {
                             sender.sendMessage("§e[MatrixSpigotBridge] §cWarning: Failed to update room topic during restart. Check console for details.");

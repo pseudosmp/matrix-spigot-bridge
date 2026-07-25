@@ -120,21 +120,36 @@ format:
     # Explicitly using minecraft color codes in matrix messages will not be handled.
     reserialize_matrix: true
 
-    # Set the *chat* room's topic to cycle through this, changing periodically.
-    # Interval set in matrix.topic_update_interval
+    # Set room topics to cycle through periodically (interval set in matrix.topic_update_interval).
     # Availability of formatting in these messages is subject to client support
     # (e.g. Element web & desktop doesn't support HTML tags but does support markdown symbols * _ ` >
     # while Element X on mobile supports neither.)
+    # Supports simple topic list (applies to chat room) OR purpose-room lists:
+    # Legacy / simple mode:
+    # room_topic:
+    #     - 'The face is the index of the mind.'
+    #     - 'The keyboard is mightier than the sword.'
+    # Purpose-room mode:
     room_topic: 
-        - 'The face is the index of the mind.'
-        - 'The keyboard is mightier than the sword.'
-        - 'What happens in the dark ALWAYS comes to light 🤡'
+        - purposes: [chat]
+          pool:
+              - 'The face is the index of the mind.'
+              - 'The keyboard is mightier than the sword.'
+              - 'What happens in the dark ALWAYS comes to light 🤡'
+        # - purposes: [server-status]
+        #   pool:
+        #       - '🟢 Online | TPS: %bukkit_tps_1% | Players: %online%/%max_players%'
     # Instead of changing in order, select randomly from the list above
     randomize_topic: true
 
-    # Set the *chat* room's topic when the Minecraft server shuts down.
+    # Set room topics when the Minecraft server shuts down.
     # Leave empty '' to disable updating topic on shutdown.
-    room_topic_shutdown: ''
+    # Supports simple string (applies to chat room) OR purpose-room entries:
+    room_topic_shutdown:
+        - purposes: [chat]
+          topic: ''
+        # - purposes: [server-status]
+        #   topic: '🔴 Server Offline'
     
     # Server Watchdog ("Owner, the server room is on 🔥!!", inspired by DiscordSRV)
     # Notifies Matrix chat if the Minecraft server main thread stops ticking for longer than specified.

@@ -5,6 +5,7 @@ import com.pseudosmp.msb.MatrixSpigotBridge;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -28,7 +29,7 @@ public class ReloadConfig implements CommandExecutor {
         String prevHomeserver = config.matrixServer;
         String prevRoomID = config.matrixRoomId;
         List<String> prevUserBlacklist = new ArrayList<>(config.matrixUserBlacklist);
-        List<String> prevRoomTopicPool = new ArrayList<>(config.matrixRoomTopicPool);
+        Map<String, List<String>> prevRoomTopicPools = new java.util.HashMap<>(config.matrixRoomTopicPools);
         int prevTopicUpdateInterval = config.matrixTopicUpdateInterval;
 
         if (!config.load()) {
@@ -50,7 +51,7 @@ public class ReloadConfig implements CommandExecutor {
         }
 
         if (config.matrixTopicUpdateInterval != prevTopicUpdateInterval || 
-                !new HashSet<>(config.matrixRoomTopicPool).equals(new HashSet<>(prevRoomTopicPool))) {
+                !config.matrixRoomTopicPools.equals(prevRoomTopicPools)) {
             plugin.updateRoomTopicAsync(success -> {});
         }
 

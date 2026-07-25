@@ -49,6 +49,8 @@ public class ConfigUtils {
     public List<String> matrixUserBlacklist;
     public List<String> matrixRegexBlacklist;
     public List<String> matrixRoomTopicPool;
+    public Map<String, List<String>> matrixRoomTopicPools = new HashMap<>();
+    public Map<String, String> matrixRoomTopicShutdowns = new HashMap<>();
     public boolean cacheMatrixDisplaynames;
     public boolean canUsePapi;
     private Map<String, Object> format = Collections.emptyMap();
@@ -87,7 +89,8 @@ public class ConfigUtils {
             }
 
             matrixTopicUpdateInterval = config.getInt("matrix.topic_update_interval", -1);
-            matrixRoomTopicPool = config.getStringList("format.room_topic");
+            parseRoomTopicPools(config);
+            parseRoomTopicShutdowns(config);
             nextTopicIndex = 0; // Resetting to 0 on each load, will be updated in updateRoomTopicAsync
             matrixUserBlacklist = config.getStringList("matrix.user_blacklist");
             matrixRegexBlacklist = config.getStringList("matrix.regex_blacklist");
@@ -337,4 +340,186 @@ public class ConfigUtils {
         }
         return map;
     }
+
+    private void parseRoomTopicPools(FileConfiguration config) {
+        matrixRoomTopicPools.clear();
+        Object raw = config.get("format.room_topic");
+        if (raw instanceof List) {
+            List<?> list = (List<?>) raw;
+            List<String> simpleStrings = new ArrayList<>();
+            for (Object item : list) {
+                if (item instanceof String) {
+                    simpleStrings.add((String) item);
+                } else if (item instanceof Map) {
+                    Map<?, ?> map = (Map<?, ?>) item;
+                    Object purpObj = map.get("purposes");
+                    if (purpObj == null) purpObj = map.get("purpose");
+                    List<String> purps = parsePurposesList(purpObj);
+
+                    Object poolObj = map.get("pool");
+                    if (poolObj == null) poolObj = map.get("topics");
+                    if (poolObj == null) poolObj = map.get("topic");
+                    List<String> pool = parseTopicPoolList(poolObj);
+
+                    for (String p : purps) {
+                        matrixRoomTopicPools.computeIfAbsent(p.toLowerCase().trim(), k -> new ArrayList<>()).addAll(pool);
+                    }
+                } else if (item instanceof ConfigurationSection) {
+                    ConfigurationSection sec = (ConfigurationSection) item;
+                    Object purpObj = sec.get("purposes");
+                    if (purpObj == null) purpObj = sec.get("purpose");
+                    List<String> purps = parsePurposesList(purpObj);
+
+                    Object poolObj = sec.get("pool");
+                    if (poolObj == null) poolObj = sec.get("topics");
+                    if (poolObj == null) poolObj = sec.get("topic");
+                    List<String> pool = parseTopicPoolList(poolObj);
+
+                    for (String p : purps) {
+                        matrixRoomTopicPools.computeIfAbsent(p.toLowerCase().trim(), k -> new ArrayList<>()).addAll(pool);
+                    }
+                }
+            }
+            if (!simpleStrings.isEmpty()) {
+                matrixRoomTopicPools.put("chat", simpleStrings);
+            }
+        } else if (raw instanceof ConfigurationSection) {
+            ConfigurationSection sec = (ConfigurationSection) raw;
+            for (String key : sec.getKeys(false)) {
+                List<String> pool = parseTopicPoolList(sec.get(key));
+                for (String p : parsePurposesList(key)) {
+                    matrixRoomTopicPools.computeIfAbsent(p.toLowerCase().trim(), k -> new ArrayList<>()).addAll(pool);
+                }
+            }
+        } else if (raw instanceof String) {
+            String s = (String) raw;
+            if (!s.isEmpty()) {
+                matrixRoomTopicPools.put("chat", Collections.singletonList(s));
+            }
+        }
+
+        matrixRoomTopicPool = matrixRoomTopicPools.getOrDefault("chat",
+                matrixRoomTopicPools.isEmpty() ? Collections.emptyList() : matrixRoomTopicPools.values().iterator().next());
+    }
+
+    private void parseRoomTopicShutdowns(FileConfiguration config) {
+        matrixRoomTopicShutdowns.clear();
+        Object raw = config.get("format.room_topic_shutdown");
+        if (raw instanceof String) {
+            String s = (String) raw;
+            matrixRoomTopicShutdowns.put("chat", s);
+        } else if (raw instanceof List) {
+            List<?> list = (List<?>) raw;
+            for (Object item : list) {
+                if (item instanceof Map) {
+                    Map<?, ?> map = (Map<?, ?>) item;
+                    Object purpObj = map.get("purposes");
+                    if (purpObj == null) purpObj = map.get("purpose");
+                    List<String> purps = parsePurposesList(purpObj);
+
+                    Object topicObj = map.get("topic");
+                    String topicStr = topicObj != null ? topicObj.toString() : "";
+                    for (String p : purps) {
+                        matrixRoomTopicShutdowns.put(p.toLowerCase().trim(), topicStr);
+                    }
+                } else if (item instanceof ConfigurationSection) {
+                    ConfigurationSection sec = (ConfigurationSection) item;
+                    Object purpObj = sec.get("purposes");
+                    if (purpObj == null) purpObj = sec.get("purpose");
+                    List<String> purps = parsePurposesList(purpObj);
+
+                    Object topicObj = sec.get("topic");
+                    String topicStr = topicObj != null ? topicObj.toString() : "";
+                    for (String p : purps) {
+                        matrixRoomTopicShutdowns.put(p.toLowerCase().trim(), topicStr);
+                    }
+                } else if (item instanceof String) {
+                    matrixRoomTopicShutdowns.put("chat", (String) item);
+                }
+            }
+        } else if (raw instanceof ConfigurationSection) {
+            ConfigurationSection sec = (ConfigurationSection) raw;
+            for (String key : sec.getKeys(false)) {
+                String val = sec.getString(key, "");
+                for (String p : parsePurposesList(key)) {
+                    matrixRoomTopicShutdowns.put(p.toLowerCase().trim(), val);
+                }
+            }
+        }
+    }
+
+    private List<String> parsePurposesList(Object obj) {
+        List<String> result = new ArrayList<>();
+        if (obj instanceof List) {
+            for (Object o : (List<?>) obj) {
+                if (o != null) result.add(o.toString().toLowerCase().trim());
+            }
+        } else if (obj instanceof String) {
+            String s = (String) obj;
+            for (String part : s.split(",")) {
+                if (!part.trim().isEmpty()) {
+                    result.add(part.toLowerCase().trim());
+                }
+            }
+        }
+        if (result.isEmpty()) {
+            result.add("chat");
+        }
+        return result;
+    }
+
+    private List<String> parseTopicPoolList(Object obj) {
+        List<String> result = new ArrayList<>();
+        if (obj instanceof List) {
+            for (Object o : (List<?>) obj) {
+                if (o != null) result.add(o.toString());
+            }
+        } else if (obj instanceof String) {
+            result.add((String) obj);
+        }
+        return result;
+    }
+
+    public Map<String, List<String>> getRoomTopicsByRoomId() {
+        Map<String, List<String>> roomIdToPool = new java.util.LinkedHashMap<>();
+        for (Map.Entry<String, List<String>> entry : matrixRoomTopicPools.entrySet()) {
+            String purpose = entry.getKey();
+            List<String> pool = entry.getValue();
+            if (pool == null || pool.isEmpty()) continue;
+            String roomId = getRoomIdForPurpose(purpose);
+            if (roomId != null && !roomId.trim().isEmpty()) {
+                roomIdToPool.putIfAbsent(roomId.trim(), pool);
+            }
+        }
+        return roomIdToPool;
+    }
+
+    public Map<String, String> getShutdownTopicsByRoomId() {
+        Map<String, String> roomIdToShutdown = new java.util.LinkedHashMap<>();
+        for (Map.Entry<String, String> entry : matrixRoomTopicShutdowns.entrySet()) {
+            String purpose = entry.getKey();
+            String shutdownTopic = entry.getValue();
+            if (shutdownTopic == null) continue;
+            String roomId = getRoomIdForPurpose(purpose);
+            if (roomId != null && !roomId.trim().isEmpty()) {
+                roomIdToShutdown.putIfAbsent(roomId.trim(), shutdownTopic);
+            }
+        }
+        return roomIdToShutdown;
+    }
+
+    public boolean hasAnyRoomTopicPool() {
+        for (List<String> pool : matrixRoomTopicPools.values()) {
+            if (pool != null && !pool.isEmpty()) return true;
+        }
+        return false;
+    }
+
+    public boolean hasAnyRoomTopicShutdown() {
+        for (String topic : matrixRoomTopicShutdowns.values()) {
+            if (topic != null && !topic.isEmpty()) return true;
+        }
+        return false;
+    }
 }
+
