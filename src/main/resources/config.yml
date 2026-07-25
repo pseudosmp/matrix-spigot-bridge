@@ -92,14 +92,14 @@ matrix:
 # PlaceholderAPI is supported! Set usePlaceholderApi to true in the common section to use
 # PlaceholderAPI placeholders in the messages. Usage: %papi_placeholder%
 # An empty value won't send messages for the related event
-# For formatting, Matrix-bound messages should use HTML tags
+# For formatting, Minecraft -> Matrix Chat should use HTML tags
 # (e.g. <b>bold</b>, <i>italic</i>, <u>underline</u>, <s>strikethrough</s>
 # <blockquote>blockquote</blockquote>, <code>inline code</code>, <pre>codeblock</pre>), 
-# while Minecraft-bound messages should use Minecraft color codes (e.g. §a for green).
+# while Matrix -> Minecraft Chat should use Minecraft color codes (e.g. §a for green).
 format:
     # Player-related events (join, quit, chat, death)
-    # {PLAYERNAME} is the displayed player name, {OLD_NAME} is the former name (for name changes), {MESSAGE} is the default event message
-    # For chat, {MESSAGE} is the message sent by user
+    # {PLAYERNAME} is the displayed player name, {OLD_NAME} is the former name (for name changes)
+    # {MESSAGE} is the default event message. For chat, {MESSAGE} is the message sent by user
     # Minecraft -> Matrix Chat
     player:
         join: '➕ {MESSAGE}'
@@ -138,7 +138,7 @@ format:
               - 'What happens in the dark ALWAYS comes to light 🤡'
         # - purposes: [server-status]
         #   pool:
-        #       - '🟢 Online | TPS: %bukkit_tps_1% | Players: %online%/%max_players%'
+        #       - '🟢 Online | TPS: %server_tps% | Players: %server_online%/%server_max_players%'
     # Instead of changing in order, select randomly from the list above
     randomize_topic: true
 
