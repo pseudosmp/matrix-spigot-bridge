@@ -20,16 +20,30 @@ common:
 matrix:
     # Matrix homeserver base url
     server: 'https://example.com:8448'
-    
-    # Matrix room used to communicate with players
-    # Note: Do not use room alias (#roomname:example.com), use internal room ID.
-    room_id: '!fdsgfdKJHGKujys:example.com'
 
     # Automatic account used to post and read messages in the room
     # Once access token has been generated after first login in access.yml,
     # you can safely set the password here to '' if you don't want the password stored in cleartext
     user_id: '@mcbot:example.com'
     password: 'y0urPa55w0rd'
+
+    # Matrix room used to communicate with players
+    # Note: Do not use room alias (#roomname:example.com), use internal room ID.
+    room_id: '!fdsgfdKJHGKujys:example.com'
+
+    # Per-purpose room configuration (optional)
+    # Override the room ID for specific message types. If left empty or omitted,
+    # messages will fall back to room_id above.
+    # You can point multiple purposes to the same room ID (e.g. join, leave, death).
+    # To disable messages of a specific purpose, set its *format string* to empty ''.
+    rooms:
+        chat: ''
+        join: ''
+        leave: ''
+        death: ''
+        server-status: ''
+        watchdog: ''
+        console: ''
 
     # Seconds to wait between polls to get messages from matrix server.
     # Lower values will result in faster message delivery, but will increase server load.
@@ -44,27 +58,14 @@ matrix:
     # Some examples: '!', '.', '/mc ', '!matrix '
     command_prefix: '!'
 
-    # Add a command to this list to disable it in the matrix chat
+    # Add a command to this list to enable it in the matrix chat
     # For all available commands, please refer to the latest default config.yml
     # Commands not in this list will be considered unknown.
     available_commands: [help, ping, list, tps, ip]
 
-    # List of Matrix room IDs where Matrix commands (!ping, !list, !tps, etc.) are allowed.
+    # List of Matrix room IDs where Matrix commands are allowed.
     # Leave empty [] to allow commands in all joined rooms, or specify room IDs.
     command_allowed_rooms: []
-
-    # Per-purpose room configuration (optional)
-    # Override the room ID for specific message types. If left empty or omitted,
-    # messages will fall back to room_id above.
-    # You can point multiple purposes to the same room ID (e.g. join, leave, death).
-    rooms:
-        chat: ''
-        join: ''
-        leave: ''
-        death: ''
-        server: ''
-        watchdog: ''
-        console: ''
 
     # Add user_ids here to blacklist - their messages will not be sent to the Minecraft chat
     # By default, the bot user configured above is blacklisted. Use the same format as user_id
@@ -115,7 +116,7 @@ format:
     # Explicitly using minecraft color codes in matrix messages will not be handled.
     reserialize_matrix: true
 
-    # Set the room's topic to cycle through this, changing periodically.
+    # Set the *chat* room's topic to cycle through this, changing periodically.
     # Interval set in matrix.topic_update_interval
     # Availability of formatting in these messages is subject to client support
     # (e.g. Element web & desktop doesn't support HTML tags but does support markdown symbols * _ ` >
@@ -127,12 +128,13 @@ format:
     # Instead of changing in order, select randomly from the list above
     randomize_topic: true
 
-    # Set the room's topic when the Minecraft server shuts down.
+    # Set the *chat* room's topic when the Minecraft server shuts down.
     # Leave empty '' to disable updating topic on shutdown.
     room_topic_shutdown: ''
     
     # Server Watchdog ("Owner, the server room is on 🔥!!", inspired by DiscordSRV)
     # Notifies Matrix chat if the Minecraft server main thread stops ticking for longer than specified.
+    # Minecraft -> Matrix Chat
     watchdog:
         # Enable or disable the watchdog monitor
         enabled: true
@@ -142,10 +144,10 @@ format:
         repeat_notification: 2
         # Send a notification in Matrix when the server resumes ticking after a freeze alert
         notify_recovery: true
-        # Watchdog alert message format (Minecraft -> Matrix)
+        # Watchdog alert message format
         # Placeholders: {TIMEOUT}
         freeze: '<b>The server room is on 🔥‼️</b> (Server hasn''t ticked in {TIMEOUT} seconds)'
-        # Recovery notification message format (Minecraft -> Matrix)
+        # Recovery notification message format
         # Placeholders: {LAG_TIME}, {TIMEOUT}
         recovery: '🧯🔥 Server resumed ticking after {LAG_TIME} seconds.'
 

@@ -54,7 +54,7 @@ public class ConfigUtils {
     public ConfigUtils(MatrixSpigotBridge plugin) {
         this.plugin = plugin;
         this.logger = plugin.getLogger();
-        this.isFirstRun = !plugin.getDataFolder().exists() && !new File(plugin.getDataFolder(), "config.yml").exists();
+        this.isFirstRun = !new File(plugin.getDataFolder(), "config.yml").exists();
         checkAndUpdateConfig();
     }
 
@@ -100,20 +100,21 @@ public class ConfigUtils {
 
             /* Config Checks */
 
-            // If any of these are empty, why would there be a point to this plugin?
-            if (!isFirstRun) {
-                if (matrixServer == null || matrixServer.isEmpty()) {
-                    logger.severe("Matrix server URL is not set! Please set it and run /msb restart!");
-                    return false;
-                }
-                if (matrixUserId == null || matrixUserId.isEmpty()) {
-                    logger.severe("Matrix user ID is not set! Please set it and run /msb restart!");
-                    return false;
-                }
-                if (matrixRoomId == null || matrixRoomId.isEmpty()) {
-                    logger.severe("Matrix room ID is not set! Please set it and run /msb restart!");
-                    return false;
-                }
+            if (isFirstRun) {
+                return false;
+            }
+
+            if (matrixServer == null || matrixServer.isEmpty() || matrixServer.contains("example.com")) {
+                logger.severe("Matrix server URL is invalid or set to default! Please edit matrix.server in config.yml and run /msb restart!");
+                return false;
+            }
+            if (matrixUserId == null || matrixUserId.isEmpty() || matrixUserId.contains("example.com")) {
+                logger.severe("Matrix user ID is invalid or set to default! Please edit matrix.user_id in config.yml and run /msb restart!");
+                return false;
+            }
+            if (matrixRoomId == null || matrixRoomId.isEmpty() || matrixRoomId.contains("example.com")) {
+                logger.severe("Matrix room ID is invalid or set to default! Please edit matrix.room_id in config.yml and run /msb restart!");
+                return false;
             }
             // Trailing / will lead the requests to http://example.com//_matrix...
             if (matrixServer.endsWith("/")) {

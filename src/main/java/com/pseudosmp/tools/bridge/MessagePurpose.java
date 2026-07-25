@@ -7,7 +7,7 @@ public class MessagePurpose {
     public static final MessagePurpose JOIN = new MessagePurpose("join");
     public static final MessagePurpose LEAVE = new MessagePurpose("leave");
     public static final MessagePurpose DEATH = new MessagePurpose("death");
-    public static final MessagePurpose SERVER = new MessagePurpose("server");
+    public static final MessagePurpose SERVER = new MessagePurpose("server-status");
     public static final MessagePurpose WATCHDOG = new MessagePurpose("watchdog");
     public static final MessagePurpose CONSOLE = new MessagePurpose("console");
 
@@ -28,6 +28,7 @@ public class MessagePurpose {
             case "join": return JOIN;
             case "leave": return LEAVE;
             case "death": return DEATH;
+            case "server-status":
             case "server": return SERVER;
             case "watchdog": return WATCHDOG;
             case "console": return CONSOLE;

@@ -130,6 +130,7 @@ public class Matrix {
 			String trimmedRoomId = targetRoomId.trim();
 
 			boolean inRoom = false;
+			String membershipCheckError = null;
 			// Check membership of bot in room
 			try {
 				JSONObject membershipState = new JSONObject(
@@ -141,7 +142,7 @@ public class Matrix {
 					inRoom = true;
 				}
 			} catch (Exception e) {
-				plugin.getLogger().info("Membership check info for " + trimmedRoomId + ": " + e.getMessage());
+				membershipCheckError = e.getMessage();
 			}
 
 			if (!inRoom) {
@@ -152,6 +153,9 @@ public class Matrix {
 					inRoom = true;
 				} catch (Exception e) {
 					plugin.getLogger().severe("Failed to join Matrix room " + trimmedRoomId + ": " + e.getMessage());
+					if (membershipCheckError != null) {
+						plugin.getLogger().severe("Membership check info for " + trimmedRoomId + ": " + membershipCheckError);
+					}
 				}
 			}
 
@@ -435,9 +439,6 @@ public class Matrix {
 					response.append(responseLine.trim());
 				}
 			}
-
-			// Log the error details for debugging
-			plugin.getLogger().warning("Matrix API Error (" + statusCode + "): " + response.toString());
 
 			// Throw exception with more detailed error message
 			throw new IOException("Server returned HTTP response code: " + statusCode +
