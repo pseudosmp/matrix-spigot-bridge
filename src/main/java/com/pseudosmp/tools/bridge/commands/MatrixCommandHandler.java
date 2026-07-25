@@ -12,6 +12,9 @@ import com.pseudosmp.tools.bridge.commands.defaults.HelpCommand;
 import com.pseudosmp.tools.formatting.MessageFormatter;
 import com.pseudosmp.tools.game.ConfigUtils;
 
+import com.pseudosmp.msb.MatrixSpigotBridge;
+import com.pseudosmp.tools.scheduler.SchedulerAdapter;
+
 public class MatrixCommandHandler {
     private final Map<String, MatrixCommand> commands;
     private final Matrix matrix;
@@ -58,27 +61,29 @@ public class MatrixCommandHandler {
         if (command == null || command.trim().isEmpty()) return;
         if (!config.isCommandAllowedInRoom(roomId)) return;
 
-        String[] parts = command.trim().split("\\s+");
-        String cmd = parts[0].toLowerCase();
+        SchedulerAdapter.runGlobal(MatrixSpigotBridge.getInstance(), () -> {
+            String[] parts = command.trim().split("\\s+");
+            String cmd = parts[0].toLowerCase();
 
-        MatrixCommand matrixCommand = commands.get(cmd);
-        if (matrixCommand != null) {
-            matrixCommand.execute(parts, sender, eventId, roomId);
-        } else {
-            // Unknown command
-            String unknownMessage = config.getFormat("matrix_commands.unknown");
-            if (unknownMessage != null && !unknownMessage.isEmpty()) {
-                unknownMessage = formatter.replaceTimePlaceholders(unknownMessage);
-                unknownMessage = formatter.replacePlaceholderAPI(null, unknownMessage);
-                StringBuilder sb = new StringBuilder();
-                for (String cmdName : config.matrixAvailableCommands) {
-                    if (sb.length() > 0) sb.append(", ");
-                    sb.append(config.matrixCommandPrefix).append(cmdName);
+            MatrixCommand matrixCommand = commands.get(cmd);
+            if (matrixCommand != null) {
+                matrixCommand.execute(parts, sender, eventId, roomId);
+            } else {
+                // Unknown command
+                String unknownMessage = config.getFormat("matrix_commands.unknown");
+                if (unknownMessage != null && !unknownMessage.isEmpty()) {
+                    unknownMessage = formatter.replaceTimePlaceholders(unknownMessage);
+                    unknownMessage = formatter.replacePlaceholderAPI(null, unknownMessage);
+                    StringBuilder sb = new StringBuilder();
+                    for (String cmdName : config.matrixAvailableCommands) {
+                        if (sb.length() > 0) sb.append(", ");
+                        sb.append(config.matrixCommandPrefix).append(cmdName);
+                    }
+                    matrix.addReaction(roomId, eventId, "❓");
+                    matrix.postMessage(roomId, unknownMessage.replace("{COMMANDS}", sb.toString()));
                 }
-                matrix.addReaction(roomId, eventId, "❓");
-                matrix.postMessage(roomId, unknownMessage.replace("{COMMANDS}", sb.toString()));
             }
-        }
+        });
     }
 
     public Matrix getMatrix() {

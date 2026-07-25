@@ -40,6 +40,12 @@ public class ServerInfo {
 	}
 
     public static double getTps() throws Exception {
+		try {
+			java.lang.reflect.Method getTpsMethod = Bukkit.class.getMethod("getTPS");
+			double[] tps = (double[]) getTpsMethod.invoke(null);
+			return Math.min(tps[0], 20.0);
+		} catch (Throwable ignored) {}
+
 		Object server = org.bukkit.Bukkit.getServer();
 		Object minecraftServer = server.getClass().getMethod("getServer").invoke(server);
 		java.lang.reflect.Field recentTpsField = minecraftServer.getClass().getField("recentTps");
