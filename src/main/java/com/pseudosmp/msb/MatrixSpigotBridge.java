@@ -3,6 +3,7 @@ package com.pseudosmp.msb;
 import java.io.File;
 import java.io.IOException;
 import java.util.logging.Level;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
@@ -220,7 +221,12 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 			}
 
 			if (connected) {
-				logger.info("Connected to Matrix server as " + config.matrixUserId + " in room " + config.matrixRoomId);
+				Map<String, String> purposeRooms = config.getPurposeRoomMap();
+				if (config.matrixRooms != null && !config.matrixRooms.isEmpty()) {
+					logger.info("Connected to Matrix server as " + config.matrixUserId + " in room(s): " + purposeRooms);
+				} else {
+					logger.info("Connected to Matrix server as " + config.matrixUserId + " in room " + config.matrixRoomId);
+				}
 				checkAndWarnRoomPowerLevels(sender);
 				// Initialize command handler
 				commandHandler = new MatrixCommandHandler(matrix, config, formatter);

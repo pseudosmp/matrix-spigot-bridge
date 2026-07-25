@@ -318,4 +318,21 @@ public class ConfigUtils {
         }
         return matrixCommandAllowedRooms.contains(roomId);
     }
+
+    public Map<String, String> getPurposeRoomMap() {
+        Map<String, String> map = new java.util.LinkedHashMap<>();
+        if (matrixRooms != null && !matrixRooms.isEmpty()) {
+            for (Map.Entry<String, String> entry : matrixRooms.entrySet()) {
+                if (entry.getValue() != null && !entry.getValue().trim().isEmpty()) {
+                    map.put(entry.getKey(), entry.getValue().trim());
+                }
+            }
+        }
+        if (matrixRoomId != null && !matrixRoomId.trim().isEmpty()) {
+            if (map.isEmpty() || !map.containsValue(matrixRoomId.trim())) {
+                map.put("default", matrixRoomId.trim());
+            }
+        }
+        return map;
+    }
 }
