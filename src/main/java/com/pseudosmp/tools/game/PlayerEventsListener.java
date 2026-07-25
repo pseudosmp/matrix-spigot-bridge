@@ -26,7 +26,7 @@ public class PlayerEventsListener extends BaseListener {
 	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void playerJoined(PlayerJoinEvent evt) {
     	String message = evt.getJoinMessage();
-        if (message == null || message.isEmpty() || IntegrationManager.isVanished(evt.getPlayer())) {
+        if (message == null || message.isEmpty() || IntegrationManager.shouldIgnorePlayerEvent(evt.getPlayer())) {
         	return;
         }
 
@@ -60,7 +60,7 @@ public class PlayerEventsListener extends BaseListener {
 	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void playerQuit(PlayerQuitEvent evt) {
     	String message = evt.getQuitMessage();
-        if (message == null || message.isEmpty() || IntegrationManager.isVanished(evt.getPlayer())) {
+        if (message == null || message.isEmpty() || IntegrationManager.shouldIgnorePlayerEvent(evt.getPlayer())) {
         	return;
         }
 
@@ -75,7 +75,7 @@ public class PlayerEventsListener extends BaseListener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void playerDied(PlayerDeathEvent evt) {
     	String message = evt.getDeathMessage();
-        if (message == null || message.isEmpty() || IntegrationManager.isVanished(evt.getEntity())) {
+        if (message == null || message.isEmpty() || IntegrationManager.shouldIgnorePlayerEvent(evt.getEntity())) {
         	return;
         }
 
