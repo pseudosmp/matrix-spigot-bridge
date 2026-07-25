@@ -12,13 +12,17 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 import java.util.regex.PatternSyntaxException;
 
+import com.pseudosmp.tools.bridge.MessagePurpose;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 public class ConfigUtils {
@@ -38,6 +42,8 @@ public class ConfigUtils {
     public int matrixCharLimit;
     public int matrixLineLimit;
     public List<String> matrixAvailableCommands;
+    public List<String> matrixCommandAllowedRooms;
+    public Map<String, String> matrixRooms = new HashMap<>();
     public List<String> matrixUserBlacklist;
     public List<String> matrixRegexBlacklist;
     public List<String> matrixRoomTopicPool;
@@ -64,6 +70,19 @@ public class ConfigUtils {
             matrixPollDelay = config.getInt("matrix.poll_delay");
             matrixCommandPrefix = config.getString("matrix.command_prefix", "!");
             matrixAvailableCommands = config.getStringList("matrix.available_commands");
+            matrixCommandAllowedRooms = config.getStringList("matrix.command_allowed_rooms");
+            
+            matrixRooms.clear();
+            ConfigurationSection roomsSection = config.getConfigurationSection("matrix.rooms");
+            if (roomsSection != null) {
+                for (String key : roomsSection.getKeys(false)) {
+                    String val = roomsSection.getString(key);
+                    if (val != null && !val.trim().isEmpty()) {
+                        matrixRooms.put(key.toLowerCase().trim(), val.trim());
+                    }
+                }
+            }
+
             matrixTopicUpdateInterval = config.getInt("matrix.topic_update_interval", -1);
             matrixRoomTopicPool = config.getStringList("format.room_topic");
             nextTopicIndex = 0; // Resetting to 0 on each load, will be updated in updateRoomTopicAsync
@@ -239,5 +258,40 @@ public class ConfigUtils {
                 }
             }
         }
+    }
+
+    public String getRoomIdForPurpose(MessagePurpose purpose) {
+        return getRoomIdForPurpose(purpose != null ? purpose.getKey() : "chat");
+    }
+
+    public String getRoomIdForPurpose(String purposeKey) {
+        if (purposeKey != null) {
+            String roomId = matrixRooms.get(purposeKey.toLowerCase().trim());
+            if (roomId != null && !roomId.isEmpty()) {
+                return roomId;
+            }
+        }
+        return matrixRoomId != null ? matrixRoomId : "";
+    }
+
+    public Set<String> getAllConfiguredRoomIds() {
+        Set<String> roomIds = new HashSet<>();
+        if (matrixRoomId != null && !matrixRoomId.trim().isEmpty()) {
+            roomIds.add(matrixRoomId.trim());
+        }
+        for (String roomId : matrixRooms.values()) {
+            if (roomId != null && !roomId.trim().isEmpty()) {
+                roomIds.add(roomId.trim());
+            }
+        }
+        return roomIds;
+    }
+
+    public boolean isCommandAllowedInRoom(String roomId) {
+        if (roomId == null || roomId.isEmpty()) return false;
+        if (matrixCommandAllowedRooms == null || matrixCommandAllowedRooms.isEmpty()) {
+            return true;
+        }
+        return matrixCommandAllowedRooms.contains(roomId);
     }
 }

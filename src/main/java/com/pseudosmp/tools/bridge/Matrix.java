@@ -7,7 +7,11 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.net.ssl.HttpsURLConnection;
@@ -24,6 +28,7 @@ public class Matrix {
 	private String server = "";
 	private String user_id = "";
 	private String room_id = "";
+	private Set<String> joined_room_ids = new HashSet<String>();
 
 	private String room_history_token = "";
 	private String room_filters = "";
@@ -101,39 +106,67 @@ public class Matrix {
 		return access_token;
 	}
 
+	public String getRoomId() {
+		return room_id;
+	}
+
+	public Set<String> getJoinedRoomIds() {
+		return Collections.unmodifiableSet(joined_room_ids);
+	}
+
 	public boolean joinRoom(String room_id) {
-		if (user_id == null || user_id.isEmpty() || room_id == null || room_id.isEmpty() || access_token == null
-				|| access_token.isEmpty())
-			return false;
+		return joinRooms(Collections.singletonList(room_id)) > 0;
+	}
 
-		this.room_id = room_id;
-
-		boolean inRoom = false;
-		// Check membership of bot in room
-		try {
-			JSONObject membershipState = new JSONObject(
-					get("/_matrix/client/v3/rooms/" + room_id + "/state/m.room.member/" + user_id));
-
-			String membership = membershipState.optString("membership", "");
-			if ("join".equals(membership)) {
-				plugin.getLogger().info("Already in room " + room_id);
-				inRoom = true;
-			}
-		} catch (Exception e) {
-			plugin.getLogger().info("Membership check info: " + e.getMessage());
+	public int joinRooms(Collection<String> targetRoomIds) {
+		if (user_id == null || user_id.isEmpty() || access_token == null || access_token.isEmpty() || targetRoomIds == null || targetRoomIds.isEmpty()) {
+			return 0;
 		}
 
-		if (!inRoom) {
-			// Not joined -> try to join
+		joined_room_ids.clear();
+
+		for (String targetRoomId : targetRoomIds) {
+			if (targetRoomId == null || targetRoomId.trim().isEmpty()) continue;
+			String trimmedRoomId = targetRoomId.trim();
+
+			boolean inRoom = false;
+			// Check membership of bot in room
 			try {
-				request("POST", "/_matrix/client/v3/rooms/" + room_id + "/join", new JSONObject());
-				plugin.getLogger().info("Joined room " + room_id);
-				inRoom = true;
+				JSONObject membershipState = new JSONObject(
+						get("/_matrix/client/v3/rooms/" + trimmedRoomId + "/state/m.room.member/" + user_id));
+
+				String membership = membershipState.optString("membership", "");
+				if ("join".equals(membership)) {
+					plugin.getLogger().info("Already in room " + trimmedRoomId);
+					inRoom = true;
+				}
 			} catch (Exception e) {
-				plugin.getLogger().severe("Failed to join room " + room_id + ": " + e.getMessage());
-				return false;
+				plugin.getLogger().info("Membership check info for " + trimmedRoomId + ": " + e.getMessage());
+			}
+
+			if (!inRoom) {
+				// Not joined -> try to join
+				try {
+					request("POST", "/_matrix/client/v3/rooms/" + trimmedRoomId + "/join", new JSONObject());
+					plugin.getLogger().info("Joined room " + trimmedRoomId);
+					inRoom = true;
+				} catch (Exception e) {
+					plugin.getLogger().severe("Failed to join Matrix room " + trimmedRoomId + ": " + e.getMessage());
+				}
+			}
+
+			if (inRoom) {
+				joined_room_ids.add(trimmedRoomId);
 			}
 		}
+
+		if (joined_room_ids.isEmpty()) {
+			plugin.getLogger().severe("No configured Matrix rooms could be joined or verified!");
+			return 0;
+		}
+
+		// Set primary room_id to first joined room
+		this.room_id = joined_room_ids.iterator().next();
 
 		JSONObject roomFilters = new JSONObject();
 		JSONObject room = new JSONObject();
@@ -152,8 +185,13 @@ public class Matrix {
 			}
 			plugin.getLogger().info("Matrix: Messages from these users will not be relayed to Minecraft chat: "
 					+ notSenders.toString());
-			// Get only events from this room
-			room.put("rooms", new JSONArray().put(room_id));
+			
+			JSONArray filterRooms = new JSONArray();
+			for (String rId : joined_room_ids) {
+				filterRooms.put(rId);
+			}
+			room.put("rooms", filterRooms);
+
 			// Get only message events
 			timeline.put("types", new JSONArray().put("m.room.message"));
 			// Ignore messages sent by these users
@@ -167,19 +205,18 @@ public class Matrix {
 			room_filters = URLEncoder.encode(roomFilters.toString(), "UTF-8");
 		} catch (Exception e) {
 			plugin.getLogger().severe("Failed to construct room filters: " + e.getMessage());
-			return false;
+			return 0;
 		}
 
-		// Send first sync (to populate room_history_token and ignore any messages sent
-		// before server start)
+		// Send first sync (to populate room_history_token and ignore any messages sent before server start)
 		try {
 			getLastMessages();
 		} catch (Exception e) {
 			plugin.getLogger().warning("Initial room sync failed: " + e.getMessage());
-			return false;
+			return 0;
 		}
 
-		return true;
+		return joined_room_ids.size();
 	}
 
 	public int ping() {
@@ -194,7 +231,12 @@ public class Matrix {
 	}
 
 	public boolean postMessage(String formattedBody) {
-		if (room_id.isEmpty() || access_token.isEmpty()) {
+		return postMessage(this.room_id, formattedBody);
+	}
+
+	public boolean postMessage(String targetRoomId, String formattedBody) {
+		String rId = (targetRoomId != null && !targetRoomId.trim().isEmpty()) ? targetRoomId.trim() : room_id;
+		if (rId.isEmpty() || access_token.isEmpty()) {
 			return false;
 		}
 
@@ -211,7 +253,7 @@ public class Matrix {
 
 		try {
 			String txnId = nextTxnId();
-			String endpoint = "/_matrix/client/v3/rooms/" + room_id + "/send/m.room.message/" + txnId;
+			String endpoint = "/_matrix/client/v3/rooms/" + rId + "/send/m.room.message/" + txnId;
 			request("PUT", endpoint, payload);
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -232,19 +274,31 @@ public class Matrix {
 		}
 
 		JSONObject room_data = raw_result.optJSONObject("rooms");
-		if (room_data != null) {
-			JSONObject join_data = room_data.optJSONObject("join");
-			if (join_data != null && join_data.has(room_id)) {
-				JSONObject roomObj = join_data.optJSONObject(room_id);
-				if (roomObj != null) {
-					JSONObject timelineObj = roomObj.optJSONObject("timeline");
-					if (timelineObj != null) {
-						JSONArray eventsArr = timelineObj.optJSONArray("events");
-						if (eventsArr != null) {
-							result = eventsArr;
-						}
-					}
+		if (room_data == null) {
+			return result;
+		}
+
+		JSONObject join_data = room_data.optJSONObject("join");
+		if (join_data == null) {
+			return result;
+		}
+
+		for (String rId : join_data.keySet()) {
+			JSONObject roomObj = join_data.optJSONObject(rId);
+			if (roomObj == null) continue;
+
+			JSONObject timelineObj = roomObj.optJSONObject("timeline");
+			if (timelineObj == null) continue;
+
+			JSONArray eventsArr = timelineObj.optJSONArray("events");
+			if (eventsArr == null) continue;
+
+			for (int i = 0; i < eventsArr.length(); i++) {
+				JSONObject evtObj = eventsArr.getJSONObject(i);
+				if (!evtObj.has("room_id")) {
+					evtObj.put("room_id", rId);
 				}
+				result.put(evtObj);
 			}
 		}
 
@@ -273,7 +327,12 @@ public class Matrix {
 	}
 
 	public boolean setRoomTopic(String topic) {
-		if (room_id.isEmpty() || access_token.isEmpty()) {
+		return setRoomTopic(this.room_id, topic);
+	}
+
+	public boolean setRoomTopic(String targetRoomId, String topic) {
+		String rId = (targetRoomId != null && !targetRoomId.trim().isEmpty()) ? targetRoomId.trim() : room_id;
+		if (rId.isEmpty() || access_token.isEmpty()) {
 			return false;
 		}
 		try {
@@ -282,7 +341,7 @@ public class Matrix {
 			// The state_key for m.room.topic is always an empty string
 			request(
 					"PUT",
-					"/_matrix/client/v3/rooms/" + room_id + "/state/m.room.topic",
+					"/_matrix/client/v3/rooms/" + rId + "/state/m.room.topic",
 					payload);
 			return true;
 		} catch (Exception e) {
@@ -292,7 +351,12 @@ public class Matrix {
 	}
 
 	public boolean addReaction(String event_id, String reaction) {
-		if (room_id.isEmpty() || access_token.isEmpty()) {
+		return addReaction(this.room_id, event_id, reaction);
+	}
+
+	public boolean addReaction(String targetRoomId, String event_id, String reaction) {
+		String rId = (targetRoomId != null && !targetRoomId.trim().isEmpty()) ? targetRoomId.trim() : room_id;
+		if (rId.isEmpty() || access_token.isEmpty()) {
 			return false;
 		}
 		try {
@@ -303,7 +367,7 @@ public class Matrix {
 					.put("key", reaction));
 
 			String txnId = nextTxnId();
-			String endpoint = "/_matrix/client/v3/rooms/" + room_id + "/send/m.reaction/" + txnId;
+			String endpoint = "/_matrix/client/v3/rooms/" + rId + "/send/m.reaction/" + txnId;
 			request("PUT", endpoint, payload);
 			return true;
 		} catch (Exception e) {

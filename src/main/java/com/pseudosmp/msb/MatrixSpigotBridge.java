@@ -23,6 +23,7 @@ import org.json.JSONObject;
 
 import com.pseudosmp.tools.bridge.HttpsTrustAll;
 import com.pseudosmp.tools.bridge.Matrix;
+import com.pseudosmp.tools.bridge.MessagePurpose;
 import com.pseudosmp.tools.bridge.commands.MatrixCommandHandler;
 import com.pseudosmp.tools.game.MinecraftChatListener;
 import com.pseudosmp.tools.game.PlayerEventsListener;
@@ -122,19 +123,25 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 							if (body == null) {
 								return;
 							}
+							String event_room_id = obj.optString("room_id", matrix.getRoomId());
 							String sender_address = matrix.getDisplayName(obj.getString("sender"), !config.cacheMatrixDisplaynames);
 							String formattedBody = content.optString("formatted_body", "");
 
-						if (body.startsWith(config.matrixCommandPrefix)) {
-							String command = body.substring(config.matrixCommandPrefix.length()).trim();
-							if (commandHandler != null) {
-								commandHandler.handleCommand(command, sender_address, event_id);
+							if (body.startsWith(config.matrixCommandPrefix)) {
+								String command = body.substring(config.matrixCommandPrefix.length()).trim();
+								if (commandHandler != null) {
+									commandHandler.handleCommand(command, sender_address, event_id, event_room_id);
+								}
+							} else {
+								String chatRoomId = config.getRoomIdForPurpose(MessagePurpose.CHAT);
+								if (event_room_id.equals(chatRoomId)) {
+									sendMessageToMinecraft(
+										config.getFormat("matrix_chat"),
+										event_id, body, formattedBody,
+										null, sender_address, event_room_id
+									);
+								}
 							}
-						} else sendMessageToMinecraft(
-								config.getFormat("matrix_chat"),
-								event_id, body, formattedBody,
-								null, sender_address
-							);
 						});
 					}
 				} catch (Exception e) {
@@ -193,8 +200,9 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 			// Step 3: Room verification & join
 			boolean connected = false;
 			if (authenticated) {
-				boolean roomJoined = matrix.joinRoom(config.matrixRoomId);
-				if (roomJoined && matrix.isConnected()) {
+				Set<String> configuredRooms = config.getAllConfiguredRoomIds();
+				int validRoomCount = matrix.joinRooms(configuredRooms);
+				if (validRoomCount > 0 && matrix.isConnected()) {
 					Bukkit.getScheduler().runTask(this, () -> {
 						tokenConfiguration.set("token", matrix.getAccessToken());
 						try {
@@ -207,7 +215,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 					});
 					connected = true;
 				} else {
-					logger.severe("Failed to join or verify room " + config.matrixRoomId + ".");
+					logger.severe("Could not connect to any configured Matrix rooms! Please check your room IDs in config.yml and run /msb restart!");
 				}
 			}
 
@@ -312,7 +320,8 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 						room_topic = formatter.replacePlaceholderAPI(null, room_topic);
 						room_topic = formatter.stripMinecraftColors(room_topic);
 					}
-					success = matrix.setRoomTopic(room_topic);
+					String chatRoomId = config.getRoomIdForPurpose(MessagePurpose.CHAT);
+					success = matrix.setRoomTopic(chatRoomId, room_topic);
 				} else {
 					success = true;
 				}
@@ -371,6 +380,14 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 	}
 
 	public void sendMessageToMatrix(String format, String message, Player player) {
+		sendMessageToMatrix(MessagePurpose.CHAT, format, message, player);
+	}
+
+	public void sendMessageToMatrix(String purposeKey, String format, String message, Player player) {
+		sendMessageToMatrix(MessagePurpose.fromKey(purposeKey), format, message, player);
+	}
+
+	public void sendMessageToMatrix(MessagePurpose purpose, String format, String message, Player player) {
 		if (matrix == null || establishConnection != null) {
 			// Ignoring for now, not connected to matrix server yet
 			return;
@@ -385,8 +402,9 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 
 		final String Format = formatter.replaceTimePlaceholders(format);
 		final String Message = message;
+		final String targetRoomId = config.getRoomIdForPurpose(purpose);
 		Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
-			matrix.postMessage(Format
+			matrix.postMessage(targetRoomId, Format
 					.replace("{PLAYERNAME}", (player != null) ? player.getName() : "???")
 					.replace("{MESSAGE}", Message)
 			);
@@ -398,6 +416,10 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 	}
 
 	public void sendMessageToMinecraft(String format, String event_id, String message, String formattedMessage, Player player, String defaultPlayername) {
+		sendMessageToMinecraft(format, event_id, message, formattedMessage, player, defaultPlayername, config.getRoomIdForPurpose(MessagePurpose.CHAT));
+	}
+
+	public void sendMessageToMinecraft(String format, String event_id, String message, String formattedMessage, Player player, String defaultPlayername, String eventRoomId) {
 		if (config.canUsePapi)
 			format = formatter.replacePlaceholderAPI(player, format);
 
@@ -409,7 +431,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 					"Matrix: regex matched {" + regex + "} [" + 
 					(player != null ? player.getName() : defaultPlayername) + "] " + message
 				);
-				matrix.addReaction(event_id, "❗");
+				matrix.addReaction(eventRoomId, event_id, "❗");
 				return;
 			}
 		}
@@ -420,7 +442,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 				(player != null ? player.getName() : defaultPlayername) + "] " +
 				message.replace("\n", " ").substring(0, 64) + "..."
 			);
-			matrix.addReaction(event_id, "❗");
+			matrix.addReaction(eventRoomId, event_id, "❗");
 			return;
 		}
 		if (config.matrixLineLimit > 0 && message.split("\n").length > config.matrixLineLimit) {
@@ -429,7 +451,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 				(player != null ? player.getName() : defaultPlayername) + "] " +
 				message.replace("\n", " ").substring(0, Math.min(64, message.length())) + "..."
 			);
-			matrix.addReaction(event_id, "❗");
+			matrix.addReaction(eventRoomId, event_id, "❗");
 			return;
 		}
 
@@ -484,7 +506,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 					} catch (Exception ignored) {}
 					String start_message = config.getFormat("server.start");
 					if (!start_message.isEmpty())
-						sendMessageToMatrix(start_message, "", null);
+						sendMessageToMatrix(MessagePurpose.SERVER, start_message, "", null);
 					updateRoomTopicAsync(success1 -> {});
 				}
 			});
@@ -517,10 +539,12 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 			Thread shutdownThread = new Thread(() -> {
 				try {
 					if (msg != null) {
-						matrix.postMessage(msg);
+						String serverRoomId = config.getRoomIdForPurpose(MessagePurpose.SERVER);
+						matrix.postMessage(serverRoomId, msg);
 					}
 					if (formattedTopic != null) {
-						matrix.setRoomTopic(formattedTopic);
+						String chatRoomId = config.getRoomIdForPurpose(MessagePurpose.CHAT);
+						matrix.setRoomTopic(chatRoomId, formattedTopic);
 					}
 				} catch (Exception ignored) {}
 			});

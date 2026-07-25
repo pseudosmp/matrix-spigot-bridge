@@ -6,6 +6,7 @@ import org.bukkit.event.player.AsyncPlayerChatEvent;
 
 import com.pseudosmp.msb.BaseListener;
 import com.pseudosmp.msb.MatrixSpigotBridge;
+import com.pseudosmp.tools.bridge.MessagePurpose;
 import com.pseudosmp.tools.integrations.IntegrationManager;
 
 public class MinecraftChatListener extends BaseListener {
@@ -20,6 +21,7 @@ public class MinecraftChatListener extends BaseListener {
         }
 
         sendMatrixMessage(
+    		MessagePurpose.CHAT,
     		_plugin.getConfig().getString("format.player.chat"),
     		evt.getMessage(),
     		evt.getPlayer()

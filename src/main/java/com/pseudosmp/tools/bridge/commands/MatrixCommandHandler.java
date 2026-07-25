@@ -51,14 +51,19 @@ public class MatrixCommandHandler {
     }
 
     public void handleCommand(String command, String sender, String eventId) {
+        handleCommand(command, sender, eventId, matrix.getRoomId());
+    }
+
+    public void handleCommand(String command, String sender, String eventId, String roomId) {
         if (command == null || command.trim().isEmpty()) return;
+        if (!config.isCommandAllowedInRoom(roomId)) return;
 
         String[] parts = command.trim().split("\\s+");
         String cmd = parts[0].toLowerCase();
 
         MatrixCommand matrixCommand = commands.get(cmd);
         if (matrixCommand != null) {
-            matrixCommand.execute(parts, sender, eventId);
+            matrixCommand.execute(parts, sender, eventId, roomId);
         } else {
             // Unknown command
             String unknownMessage = config.getFormat("matrix_commands.unknown");
@@ -70,8 +75,8 @@ public class MatrixCommandHandler {
                     if (sb.length() > 0) sb.append(", ");
                     sb.append(config.matrixCommandPrefix).append(cmdName);
                 }
-                matrix.addReaction(eventId, "❓");
-                matrix.postMessage(unknownMessage.replace("{COMMANDS}", sb.toString()));
+                matrix.addReaction(roomId, eventId, "❓");
+                matrix.postMessage(roomId, unknownMessage.replace("{COMMANDS}", sb.toString()));
             }
         }
     }

@@ -12,6 +12,11 @@ public class TpsCommand implements MatrixCommand {
     }
 
     public void execute(String[] args, String sender, String eventId) {
+        execute(args, sender, eventId, null);
+    }
+
+    @Override
+    public void execute(String[] args, String sender, String eventId, String roomId) {
         String tpsMessage = handler.getConfig().getFormat("matrix_commands.tps");
         if (tpsMessage != null && !tpsMessage.isEmpty()) {
             tpsMessage = handler.getFormatter().replaceTimePlaceholders(tpsMessage);
@@ -19,15 +24,15 @@ public class TpsCommand implements MatrixCommand {
             if (tpsMessage.contains("{TPS}")) {
                 try {
                     double tps = ServerInfo.getTps();
-                    handler.getMatrix().postMessage(tpsMessage.replace("{TPS}", String.format("%.2f", tps)));
+                    handler.getMatrix().postMessage(roomId, tpsMessage.replace("{TPS}", String.format("%.2f", tps)));
                 } catch (Exception e) {
-                    handler.getMatrix().addReaction(eventId, "⚠️");
+                    handler.getMatrix().addReaction(roomId, eventId, "⚠️");
                     String errorMessage = handler.getConfig().getFormat("matrix_commands.error");
                     errorMessage = handler.getFormatter().replaceTimePlaceholders(errorMessage);
-                    handler.getMatrix().postMessage(errorMessage.replace("{ERROR}", e.getMessage()));
+                    handler.getMatrix().postMessage(roomId, errorMessage.replace("{ERROR}", e.getMessage()));
                 }
             } else {
-                handler.getMatrix().postMessage(tpsMessage);
+                handler.getMatrix().postMessage(roomId, tpsMessage);
             }
         }
     }

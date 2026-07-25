@@ -8,6 +8,7 @@ import org.bukkit.event.player.*;
 
 import com.pseudosmp.msb.BaseListener;
 import com.pseudosmp.msb.MatrixSpigotBridge;
+import com.pseudosmp.tools.bridge.MessagePurpose;
 import com.pseudosmp.tools.integrations.IntegrationManager;
 
 import java.util.regex.Matcher;
@@ -49,6 +50,7 @@ public class PlayerEventsListener extends BaseListener {
                 .replace("{OLD_NAME}", oldName != null ? oldName : "");
 
         sendMatrixMessage(
+    		MessagePurpose.JOIN,
     		format,
     		message,
     		evt.getPlayer()
@@ -63,6 +65,7 @@ public class PlayerEventsListener extends BaseListener {
         }
 
         sendMatrixMessage(
+    		MessagePurpose.LEAVE,
     		config.getFormat("player.quit"),
     		message,
     		evt.getPlayer()
@@ -77,6 +80,7 @@ public class PlayerEventsListener extends BaseListener {
         }
 
         sendMatrixMessage(
+    		MessagePurpose.DEATH,
     		config.getFormat("player.death"),
     		message,
     		evt.getEntity()

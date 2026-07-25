@@ -1,6 +1,7 @@
 package com.pseudosmp.tools.game;
 
 import com.pseudosmp.msb.MatrixSpigotBridge;
+import com.pseudosmp.tools.bridge.MessagePurpose;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 
@@ -86,7 +87,7 @@ public class ServerWatchdog {
                     String msg = recoveryFormat
                             .replace("{LAG_TIME}", String.valueOf(frozenSec))
                             .replace("{TIMEOUT}", String.valueOf(timeout));
-                    plugin.sendMessageToMatrix(msg, "", null);
+                    plugin.sendMessageToMatrix(MessagePurpose.WATCHDOG, msg, "", null);
                 }
             }
         }
@@ -138,7 +139,8 @@ public class ServerWatchdog {
     private void sendDirectMatrixMessage(String msg) {
         try {
             if (plugin.getMatrix() != null) {
-                plugin.getMatrix().postMessage(msg);
+                String watchdogRoomId = MatrixSpigotBridge.config.getRoomIdForPurpose(MessagePurpose.WATCHDOG);
+                plugin.getMatrix().postMessage(watchdogRoomId, msg);
             }
         } catch (Exception ignored) {}
     }

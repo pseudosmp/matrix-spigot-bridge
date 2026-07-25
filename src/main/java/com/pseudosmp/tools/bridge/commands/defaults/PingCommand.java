@@ -11,17 +11,22 @@ public class PingCommand implements MatrixCommand {
     }
 
     public void execute(String[] args, String sender, String eventId) {
+        execute(args, sender, eventId, null);
+    }
+
+    @Override
+    public void execute(String[] args, String sender, String eventId, String roomId) {
         String pingMessage = handler.getConfig().getFormat("matrix_commands.ping");
         int ping = handler.getMatrix().ping();
         if (pingMessage != null) {
             pingMessage = handler.getFormatter().replaceTimePlaceholders(pingMessage);
             pingMessage = handler.getFormatter().replacePlaceholderAPI(null, pingMessage);
             if (ping > 0) {
-                handler.getMatrix().postMessage(pingMessage.replace("{PING}", String.valueOf(ping)));
+                handler.getMatrix().postMessage(roomId, pingMessage.replace("{PING}", String.valueOf(ping)));
             } else {
                 String errorMessage = handler.getConfig().getFormat("matrix_commands.error");
                 errorMessage = handler.getFormatter().replaceTimePlaceholders(errorMessage);
-                handler.getMatrix().postMessage(errorMessage.replace("{ERROR}", "Could not ping Matrix server."));
+                handler.getMatrix().postMessage(roomId, errorMessage.replace("{ERROR}", "Could not ping Matrix server."));
             }
         }
     }

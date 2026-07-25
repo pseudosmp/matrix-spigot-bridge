@@ -12,6 +12,11 @@ public class ListCommand implements MatrixCommand {
     }
 
     public void execute(String[] args, String sender, String eventId) {
+        execute(args, sender, eventId, null);
+    }
+
+    @Override
+    public void execute(String[] args, String sender, String eventId, String roomId) {
         String listMessage = handler.getConfig().getFormat("matrix_commands.list");
         if (listMessage != null && !listMessage.isEmpty()) {
             listMessage = handler.getFormatter().replaceTimePlaceholders(listMessage);
@@ -29,12 +34,12 @@ public class ListCommand implements MatrixCommand {
                     .replace("{MAX}", String.valueOf(status.getMax()))
                     .replace("{NAMES}", names.toString());
 
-                handler.getMatrix().postMessage(finalListMessage);
+                handler.getMatrix().postMessage(roomId, finalListMessage);
             } catch (Exception e) {
-                handler.getMatrix().addReaction(eventId, "⚠️");
+                handler.getMatrix().addReaction(roomId, eventId, "⚠️");
                 String errorMessage = handler.getConfig().getFormat("matrix_commands.error");
                 errorMessage = handler.getFormatter().replaceTimePlaceholders(errorMessage);
-                handler.getMatrix().postMessage(errorMessage.replace("{ERROR}", e.getMessage()));
+                handler.getMatrix().postMessage(roomId, errorMessage.replace("{ERROR}", e.getMessage()));
             }
         }
     }

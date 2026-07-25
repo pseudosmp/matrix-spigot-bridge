@@ -49,6 +49,23 @@ matrix:
     # Commands not in this list will be considered unknown.
     available_commands: [help, ping, list, tps, ip]
 
+    # List of Matrix room IDs where Matrix commands (!ping, !list, !tps, etc.) are allowed.
+    # Leave empty [] to allow commands in all joined rooms, or specify room IDs.
+    command_allowed_rooms: []
+
+    # Per-purpose room configuration (optional)
+    # Override the room ID for specific message types. If left empty or omitted,
+    # messages will fall back to room_id above.
+    # You can point multiple purposes to the same room ID (e.g. join, leave, death).
+    rooms:
+        chat: ''
+        join: ''
+        leave: ''
+        death: ''
+        server: ''
+        watchdog: ''
+        console: ''
+
     # Add user_ids here to blacklist - their messages will not be sent to the Minecraft chat
     # By default, the bot user configured above is blacklisted. Use the same format as user_id
     user_blacklist: []
