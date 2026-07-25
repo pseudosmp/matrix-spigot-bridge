@@ -5,7 +5,7 @@
 
     <groupId>com.pseudosmp</groupId>
     <artifactId>matrix-spigot-bridge</artifactId>
-    <version>2.7.0</version>
+    <version>2.7.1-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>MatrixSpigotBridge v2</name>
@@ -38,6 +38,12 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
+            <groupId>com.github.booksaw.BetterTeams</groupId>
+            <artifactId>betterteams</artifactId>
+            <version>5.1.4</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
             <groupId>org.json</groupId>
             <artifactId>json</artifactId>
             <version>20250517</version>
@@ -56,6 +62,10 @@
     </dependencies>
 
     <repositories>
+        <repository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
+        </repository>
         <repository>
             <id>spigot-repo</id>
             <url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
@@ -92,6 +102,9 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.14.0</version>
+                <configuration>
+                    <release>8</release>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
