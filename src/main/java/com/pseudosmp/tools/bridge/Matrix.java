@@ -21,6 +21,7 @@ import org.json.*;
 import com.pseudosmp.msb.MatrixSpigotBridge;
 import com.pseudosmp.tools.game.ConfigUtils;
 import com.pseudosmp.tools.formatting.MessageFormatter;
+import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class Matrix {
@@ -114,11 +115,113 @@ public class Matrix {
 		return Collections.unmodifiableSet(joined_room_ids);
 	}
 
+	public String getRoomDisplayName(String roomId) {
+		if (roomId == null || roomId.trim().isEmpty()) {
+			return "unknown room";
+		}
+		String trimmed = roomId.trim();
+		try {
+			JSONObject nameState = new JSONObject(get("/_matrix/client/v3/rooms/" + trimmed + "/state/m.room.name"));
+			String name = nameState.optString("name", "").trim();
+			if (!name.isEmpty()) {
+				return name + " (" + trimmed + ")";
+			}
+		} catch (Exception ignored) {}
+
+		String purposes = config != null ? config.getPurposesForRoomId(trimmed) : "configured";
+		return purposes + " room (" + trimmed + ")";
+	}
+
+	public boolean knockRoom(String roomId) {
+		if (roomId == null || roomId.trim().isEmpty()) return false;
+		try {
+			request("POST", "/_matrix/client/v3/knock/" + roomId.trim(), new JSONObject());
+			return true;
+		} catch (Exception e) {
+			return false;
+		}
+	}
+
+	public boolean isKnockRejected(String roomId) {
+		if (roomId == null || roomId.trim().isEmpty()) {
+			return false;
+		}
+		String trimmed = roomId.trim();
+		try {
+			JSONObject syncObj = new JSONObject(get("/_matrix/client/v3/sync"));
+			JSONObject rooms = syncObj.optJSONObject("rooms");
+			JSONObject leaveRooms = rooms != null ? rooms.optJSONObject("leave") : null;
+
+			if (leaveRooms == null || !leaveRooms.has(trimmed)) {
+				return false;
+			}
+
+			JSONObject roomData = leaveRooms.optJSONObject(trimmed);
+			if (roomData == null) {
+				return false;
+			}
+
+			for (JSONObject evt : extractEvents(roomData)) {
+				if (!"m.room.member".equals(evt.optString("type"))) continue;
+				if (!user_id.equalsIgnoreCase(evt.optString("state_key"))) continue;
+
+				JSONObject content = evt.optJSONObject("content");
+				String membership = content != null ? content.optString("membership", "") : "";
+				if (!"leave".equalsIgnoreCase(membership)) continue;
+
+				String sender = evt.optString("sender", "");
+				if (user_id.equalsIgnoreCase(sender)) continue; // Self-left, not an admin rejection
+
+				String prevMembership = extractPrevMembership(evt);
+				if ("knock".equalsIgnoreCase(prevMembership)) {
+					return true;
+				}
+			}
+		} catch (Exception ignored) {}
+		return false;
+	}
+
+	private java.util.List<JSONObject> extractEvents(JSONObject roomData) {
+		java.util.List<JSONObject> events = new java.util.ArrayList<>();
+		String[] sections = {"state", "timeline"};
+		for (String section : sections) {
+			JSONObject secObj = roomData.optJSONObject(section);
+			if (secObj != null) {
+				JSONArray evts = secObj.optJSONArray("events");
+				if (evts != null) {
+					for (int i = 0; i < evts.length(); i++) {
+						JSONObject evt = evts.optJSONObject(i);
+						if (evt != null) {
+							events.add(evt);
+						}
+					}
+				}
+			}
+		}
+		return events;
+	}
+
+	private String extractPrevMembership(JSONObject evt) {
+		JSONObject unsigned = evt.optJSONObject("unsigned");
+		if (unsigned != null && unsigned.has("prev_content")) {
+			JSONObject prevContent = unsigned.optJSONObject("prev_content");
+			if (prevContent != null) {
+				return prevContent.optString("membership", "");
+			}
+		}
+		JSONObject prevContent = evt.optJSONObject("prev_content");
+		return prevContent != null ? prevContent.optString("membership", "") : "";
+	}
+
 	public boolean joinRoom(String room_id) {
-		return joinRooms(Collections.singletonList(room_id)) > 0;
+		return joinRooms(Collections.singletonList(room_id), null) > 0;
 	}
 
 	public int joinRooms(Collection<String> targetRoomIds) {
+		return joinRooms(targetRoomIds, null);
+	}
+
+	public int joinRooms(Collection<String> targetRoomIds, CommandSender sender) {
 		if (user_id == null || user_id.isEmpty() || access_token == null || access_token.isEmpty() || targetRoomIds == null || targetRoomIds.isEmpty()) {
 			return 0;
 		}
@@ -131,14 +234,16 @@ public class Matrix {
 
 			boolean inRoom = false;
 			String membershipCheckError = null;
+			String currentMembership = "";
+
 			// Check membership of bot in room
 			try {
 				JSONObject membershipState = new JSONObject(
 						get("/_matrix/client/v3/rooms/" + trimmedRoomId + "/state/m.room.member/" + user_id));
 
-				String membership = membershipState.optString("membership", "");
-				if ("join".equals(membership)) {
-					plugin.getLogger().info("Already in room " + trimmedRoomId);
+				currentMembership = membershipState.optString("membership", "");
+				if ("join".equals(currentMembership)) {
+					plugin.getLogger().info("Already in room " + getRoomDisplayName(trimmedRoomId));
 					inRoom = true;
 				}
 			} catch (Exception e) {
@@ -146,15 +251,53 @@ public class Matrix {
 			}
 
 			if (!inRoom) {
-				// Not joined -> try to join
-				try {
-					request("POST", "/_matrix/client/v3/rooms/" + trimmedRoomId + "/join", new JSONObject());
-					plugin.getLogger().info("Joined room " + trimmedRoomId);
-					inRoom = true;
-				} catch (Exception e) {
-					plugin.getLogger().severe("Failed to join Matrix room " + trimmedRoomId + ": " + e.getMessage());
-					if (membershipCheckError != null) {
-						plugin.getLogger().severe("Membership check info for " + trimmedRoomId + ": " + membershipCheckError);
+				if ("invite".equals(currentMembership)) {
+					// Invited -> try to join
+					try {
+						request("POST", "/_matrix/client/v3/rooms/" + trimmedRoomId + "/join", new JSONObject());
+						plugin.getLogger().info("Joined room " + getRoomDisplayName(trimmedRoomId) + " via pending invite.");
+						inRoom = true;
+					} catch (Exception e) {
+						plugin.getLogger().severe("Failed to join room " + getRoomDisplayName(trimmedRoomId) + ": " + e.getMessage());
+					}
+				} else if ("knock".equals(currentMembership)) {
+					// Knock is currently pending
+					String displayName = getRoomDisplayName(trimmedRoomId);
+					plugin.getLogger().warning("Knock for " + displayName + " is pending approval. Please accept the knock in Matrix and run /msb restart.");
+					if (sender != null) {
+						sender.sendMessage("§e[MatrixSpigotBridge] §eKnock for " + displayName + " is pending approval. Please accept the knock in Matrix and run §a/msb restart§e.");
+					}
+				} else {
+					// Not joined -> try to join directly first
+					try {
+						request("POST", "/_matrix/client/v3/rooms/" + trimmedRoomId + "/join", new JSONObject());
+						plugin.getLogger().info("Joined room " + getRoomDisplayName(trimmedRoomId));
+						inRoom = true;
+					} catch (Exception joinEx) {
+						// Join failed -> try knocking if room requires invite/knock
+						String displayName = getRoomDisplayName(trimmedRoomId);
+						if (knockRoom(trimmedRoomId)) {
+							plugin.getLogger().warning("Knock request sent for " + displayName + ". Please accept the knock in Matrix and run /msb restart.");
+							if (sender != null) {
+								sender.sendMessage("§e[MatrixSpigotBridge] §eKnock request sent for " + displayName + ". Please accept the knock in Matrix and run §a/msb restart§e.");
+							}
+						} else {
+							// Knock failed or disabled -> check if knock was explicitly rejected
+							if (isKnockRejected(trimmedRoomId)) {
+								plugin.getLogger().severe("Knock for Matrix room " + displayName + " was REJECTED by room administrators!");
+								if (sender != null) {
+									sender.sendMessage("§e[MatrixSpigotBridge] §cKnock for Matrix room " + displayName + " was REJECTED by room administrators!");
+								}
+							} else {
+								plugin.getLogger().severe("Failed to join Matrix room " + displayName + ": " + joinEx.getMessage());
+								if (membershipCheckError != null) {
+									plugin.getLogger().severe("Membership check info for " + displayName + ": " + membershipCheckError);
+								}
+								if (sender != null) {
+									sender.sendMessage("§e[MatrixSpigotBridge] §cFailed to join Matrix room " + displayName + "!");
+								}
+							}
+						}
 					}
 				}
 			}

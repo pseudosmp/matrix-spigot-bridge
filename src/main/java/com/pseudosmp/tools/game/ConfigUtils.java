@@ -11,6 +11,7 @@ import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -286,6 +287,28 @@ public class ConfigUtils {
             }
         }
         return roomIds;
+    }
+
+    public String getPurposesForRoomId(String targetRoomId) {
+        if (targetRoomId == null || targetRoomId.trim().isEmpty()) {
+            return "unknown";
+        }
+        String trimmed = targetRoomId.trim();
+        List<String> purposes = new ArrayList<>();
+        for (Map.Entry<String, String> entry : matrixRooms.entrySet()) {
+            if (trimmed.equalsIgnoreCase(entry.getValue() != null ? entry.getValue().trim() : "")) {
+                purposes.add(entry.getKey());
+            }
+        }
+        if (trimmed.equalsIgnoreCase(matrixRoomId != null ? matrixRoomId.trim() : "")) {
+            if (!purposes.contains("default")) {
+                purposes.add("default");
+            }
+        }
+        if (purposes.isEmpty()) {
+            return "configured";
+        }
+        return String.join(", ", purposes);
     }
 
     public boolean isCommandAllowedInRoom(String roomId) {

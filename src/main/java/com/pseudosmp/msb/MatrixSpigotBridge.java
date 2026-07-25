@@ -201,7 +201,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 			boolean connected = false;
 			if (authenticated) {
 				Set<String> configuredRooms = config.getAllConfiguredRoomIds();
-				int validRoomCount = matrix.joinRooms(configuredRooms);
+				int validRoomCount = matrix.joinRooms(configuredRooms, sender);
 				if (validRoomCount > 0 && matrix.isConnected()) {
 					Bukkit.getScheduler().runTask(this, () -> {
 						tokenConfiguration.set("token", matrix.getAccessToken());
