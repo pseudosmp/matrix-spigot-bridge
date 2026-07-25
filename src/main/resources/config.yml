@@ -31,6 +31,10 @@ matrix:
     # Note: Do not use room alias (#roomname:example.com), use internal room ID.
     room_id: '!fdsgfdKJHGKujys:example.com'
 
+    # (Optional) Parent Space ID containing restricted rooms.
+    # If set, the bot will automatically join this space first to gain entry into restricted rooms.
+    space_id: ''
+
     # Per-purpose room configuration (optional)
     # Override the room ID for specific message types. If left empty or omitted,
     # messages will fall back to room_id above.

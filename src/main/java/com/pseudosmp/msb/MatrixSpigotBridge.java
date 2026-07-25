@@ -221,6 +221,9 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 			}
 
 			if (connected) {
+				if (config.matrixSpaceId != null && !config.matrixSpaceId.trim().isEmpty()) {
+					logger.info("Parent Space configured: " + config.matrixSpaceId.trim());
+				}
 				Map<String, String> purposeRooms = config.getPurposeRoomMap();
 				if (config.matrixRooms != null && !config.matrixRooms.isEmpty()) {
 					logger.info("Connected to Matrix server as " + config.matrixUserId + " in room(s): " + purposeRooms);

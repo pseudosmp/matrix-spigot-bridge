@@ -235,6 +235,41 @@ public class Matrix {
 
 		joined_room_ids.clear();
 
+		// Auto-join parent Space if configured (to grant entry for restricted child rooms)
+		if (config != null && config.matrixSpaceId != null && !config.matrixSpaceId.trim().isEmpty()) {
+			String spaceId = config.matrixSpaceId.trim();
+			try {
+				boolean inSpace = false;
+				String spaceMembership = "";
+				try {
+					JSONObject spaceMemberState = new JSONObject(
+							get("/_matrix/client/v3/rooms/" + spaceId + "/state/m.room.member/" + user_id));
+					spaceMembership = spaceMemberState.optString("membership", "");
+					if ("join".equals(spaceMembership)) {
+						plugin.getLogger().info("Already in parent Space " + getRoomDisplayName(spaceId));
+						inSpace = true;
+					}
+				} catch (Exception ignored) {
+				}
+
+				if (!inSpace) {
+					if ("invite".equals(spaceMembership)) {
+						request("POST", "/_matrix/client/v3/rooms/" + spaceId + "/join", new JSONObject());
+						plugin.getLogger().info("Joined parent Space " + getRoomDisplayName(spaceId) + " via pending invite.");
+					} else {
+						request("POST", "/_matrix/client/v3/rooms/" + spaceId + "/join", new JSONObject());
+						plugin.getLogger().info("Joined parent Space " + getRoomDisplayName(spaceId));
+					}
+				}
+			} catch (Exception e) {
+				plugin.getLogger().warning("Could not join parent Space " + spaceId + ": " + e.getMessage()
+						+ ". Restricted child room joins may fail if bot is not in the space.");
+				if (sender != null) {
+					sender.sendMessage("§e[MatrixSpigotBridge] §cWarning: Could not join parent Space " + spaceId + " (" + e.getMessage() + ")");
+				}
+			}
+		}
+
 		for (String targetRoomId : targetRoomIds) {
 			if (targetRoomId == null || targetRoomId.trim().isEmpty())
 				continue;
@@ -307,6 +342,14 @@ public class Matrix {
 							} else {
 								plugin.getLogger().severe(
 										"Failed to join Matrix room " + displayName + ": " + joinEx.getMessage());
+								if (config != null && config.matrixSpaceId != null && !config.matrixSpaceId.trim().isEmpty()) {
+									plugin.getLogger().severe(
+											"Diagnostic: Room " + displayName + " might be restricted. Ensure the bot has joined parent Space ("
+													+ config.matrixSpaceId.trim() + ") or has explicit invite permissions.");
+								} else {
+									plugin.getLogger().info(
+											"Diagnostic tip: If " + displayName + " is a restricted room under a Matrix Space, set 'matrix.space_id' in config.yml so the bot can auto-join the parent space.");
+								}
 								if (membershipCheckError != null) {
 									plugin.getLogger().severe(
 											"Membership check info for " + displayName + ": " + membershipCheckError);

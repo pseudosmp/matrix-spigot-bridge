@@ -36,6 +36,7 @@ public class ConfigUtils {
     public String matrixServer;
     public String matrixUserId;
     public String matrixRoomId;
+    public String matrixSpaceId;
     public String matrixCommandPrefix;
     public int matrixPollDelay;
     public int matrixTopicUpdateInterval;
@@ -68,6 +69,7 @@ public class ConfigUtils {
             matrixServer = config.getString("matrix.server");
             matrixUserId = config.getString("matrix.user_id");
             matrixRoomId = config.getString("matrix.room_id");
+            matrixSpaceId = config.getString("matrix.space_id");
             matrixPollDelay = config.getInt("matrix.poll_delay");
             matrixCommandPrefix = config.getString("matrix.command_prefix", "!");
             matrixAvailableCommands = config.getStringList("matrix.available_commands");
