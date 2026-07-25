@@ -60,10 +60,16 @@ public class RestartBridge implements CommandExecutor {
                 sender.sendMessage("§e[MatrixSpigotBridge] §aMatrix bridge restarted successfully.");
                 try {
                     plugin.getMatrix().getLastMessages(); // Don't process messages sent during restart
-                } catch (Exception ignored) {}
+                } catch (Exception e) {
+                    plugin.getLogger().warning("Failed to fetch initial sync messages during restart: " + e.getMessage());
+                }
                 plugin.sendMessageToMatrix(config.getFormat("server.reconnect"), "", null);
-                if (config.matrixTopicUpdateInterval > 0 && !config.getFormat("room_topic").isEmpty()) {
-                    plugin.updateRoomTopicAsync(success1 -> {});
+                if (config.matrixTopicUpdateInterval > -1 && !config.getFormat("room_topic").isEmpty()) {
+                    plugin.updateRoomTopicAsync(success1 -> {
+                        if (!success1 && sender != null) {
+                            sender.sendMessage("§e[MatrixSpigotBridge] §cWarning: Failed to update room topic during restart. Check console for details.");
+                        }
+                    });
                 }
             } else {
                 sender.sendMessage("§e[MatrixSpigotBridge] §cFailed to restart Matrix bridge. Check your config and run /msb restart again.");

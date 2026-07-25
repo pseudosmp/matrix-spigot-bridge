@@ -1,7 +1,6 @@
 package com.pseudosmp.tools.bridge;
 
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
@@ -126,14 +125,16 @@ public class Matrix {
 			if (!name.isEmpty()) {
 				return name + " (" + trimmed + ")";
 			}
-		} catch (Exception ignored) {}
+		} catch (Exception ignored) {
+		}
 
 		String purposes = config != null ? config.getPurposesForRoomId(trimmed) : "configured";
 		return purposes + " room (" + trimmed + ")";
 	}
 
 	public boolean knockRoom(String roomId) {
-		if (roomId == null || roomId.trim().isEmpty()) return false;
+		if (roomId == null || roomId.trim().isEmpty())
+			return false;
 		try {
 			request("POST", "/_matrix/client/v3/knock/" + roomId.trim(), new JSONObject());
 			return true;
@@ -162,28 +163,33 @@ public class Matrix {
 			}
 
 			for (JSONObject evt : extractEvents(roomData)) {
-				if (!"m.room.member".equals(evt.optString("type"))) continue;
-				if (!user_id.equalsIgnoreCase(evt.optString("state_key"))) continue;
+				if (!"m.room.member".equals(evt.optString("type")))
+					continue;
+				if (!user_id.equalsIgnoreCase(evt.optString("state_key")))
+					continue;
 
 				JSONObject content = evt.optJSONObject("content");
 				String membership = content != null ? content.optString("membership", "") : "";
-				if (!"leave".equalsIgnoreCase(membership)) continue;
+				if (!"leave".equalsIgnoreCase(membership))
+					continue;
 
 				String sender = evt.optString("sender", "");
-				if (user_id.equalsIgnoreCase(sender)) continue; // Self-left, not an admin rejection
+				if (user_id.equalsIgnoreCase(sender))
+					continue; // Self-left, not an admin rejection
 
 				String prevMembership = extractPrevMembership(evt);
 				if ("knock".equalsIgnoreCase(prevMembership)) {
 					return true;
 				}
 			}
-		} catch (Exception ignored) {}
+		} catch (Exception ignored) {
+		}
 		return false;
 	}
 
 	private java.util.List<JSONObject> extractEvents(JSONObject roomData) {
 		java.util.List<JSONObject> events = new java.util.ArrayList<>();
-		String[] sections = {"state", "timeline"};
+		String[] sections = { "state", "timeline" };
 		for (String section : sections) {
 			JSONObject secObj = roomData.optJSONObject(section);
 			if (secObj != null) {
@@ -222,14 +228,16 @@ public class Matrix {
 	}
 
 	public int joinRooms(Collection<String> targetRoomIds, CommandSender sender) {
-		if (user_id == null || user_id.isEmpty() || access_token == null || access_token.isEmpty() || targetRoomIds == null || targetRoomIds.isEmpty()) {
+		if (user_id == null || user_id.isEmpty() || access_token == null || access_token.isEmpty()
+				|| targetRoomIds == null || targetRoomIds.isEmpty()) {
 			return 0;
 		}
 
 		joined_room_ids.clear();
 
 		for (String targetRoomId : targetRoomIds) {
-			if (targetRoomId == null || targetRoomId.trim().isEmpty()) continue;
+			if (targetRoomId == null || targetRoomId.trim().isEmpty())
+				continue;
 			String trimmedRoomId = targetRoomId.trim();
 
 			boolean inRoom = false;
@@ -255,17 +263,21 @@ public class Matrix {
 					// Invited -> try to join
 					try {
 						request("POST", "/_matrix/client/v3/rooms/" + trimmedRoomId + "/join", new JSONObject());
-						plugin.getLogger().info("Joined room " + getRoomDisplayName(trimmedRoomId) + " via pending invite.");
+						plugin.getLogger()
+								.info("Joined room " + getRoomDisplayName(trimmedRoomId) + " via pending invite.");
 						inRoom = true;
 					} catch (Exception e) {
-						plugin.getLogger().severe("Failed to join room " + getRoomDisplayName(trimmedRoomId) + ": " + e.getMessage());
+						plugin.getLogger().severe(
+								"Failed to join room " + getRoomDisplayName(trimmedRoomId) + ": " + e.getMessage());
 					}
 				} else if ("knock".equals(currentMembership)) {
 					// Knock is currently pending
 					String displayName = getRoomDisplayName(trimmedRoomId);
-					plugin.getLogger().warning("Knock for " + displayName + " is pending approval. Please accept the knock in Matrix and run /msb restart.");
+					plugin.getLogger().warning("Knock for " + displayName
+							+ " is pending approval. Please accept the knock in Matrix and run /msb restart.");
 					if (sender != null) {
-						sender.sendMessage("§e[MatrixSpigotBridge] §eKnock for " + displayName + " is pending approval. Please accept the knock in Matrix and run §a/msb restart§e.");
+						sender.sendMessage("§e[MatrixSpigotBridge] §eKnock for " + displayName
+								+ " is pending approval. Please accept the knock in Matrix and run §a/msb restart§e.");
 					}
 				} else {
 					// Not joined -> try to join directly first
@@ -277,24 +289,31 @@ public class Matrix {
 						// Join failed -> try knocking if room requires invite/knock
 						String displayName = getRoomDisplayName(trimmedRoomId);
 						if (knockRoom(trimmedRoomId)) {
-							plugin.getLogger().warning("Knock request sent for " + displayName + ". Please accept the knock in Matrix and run /msb restart.");
+							plugin.getLogger().warning("Knock request sent for " + displayName
+									+ ". Please accept the knock in Matrix and run /msb restart.");
 							if (sender != null) {
-								sender.sendMessage("§e[MatrixSpigotBridge] §eKnock request sent for " + displayName + ". Please accept the knock in Matrix and run §a/msb restart§e.");
+								sender.sendMessage("§e[MatrixSpigotBridge] §eKnock request sent for " + displayName
+										+ ". Please accept the knock in Matrix and run §a/msb restart§e.");
 							}
 						} else {
 							// Knock failed or disabled -> check if knock was explicitly rejected
 							if (isKnockRejected(trimmedRoomId)) {
-								plugin.getLogger().severe("Knock for Matrix room " + displayName + " was REJECTED by room administrators!");
+								plugin.getLogger().severe("Knock for Matrix room " + displayName
+										+ " was REJECTED by room administrators!");
 								if (sender != null) {
-									sender.sendMessage("§e[MatrixSpigotBridge] §cKnock for Matrix room " + displayName + " was REJECTED by room administrators!");
+									sender.sendMessage("§e[MatrixSpigotBridge] §cKnock for Matrix room " + displayName
+											+ " was REJECTED by room administrators!");
 								}
 							} else {
-								plugin.getLogger().severe("Failed to join Matrix room " + displayName + ": " + joinEx.getMessage());
+								plugin.getLogger().severe(
+										"Failed to join Matrix room " + displayName + ": " + joinEx.getMessage());
 								if (membershipCheckError != null) {
-									plugin.getLogger().severe("Membership check info for " + displayName + ": " + membershipCheckError);
+									plugin.getLogger().severe(
+											"Membership check info for " + displayName + ": " + membershipCheckError);
 								}
 								if (sender != null) {
-									sender.sendMessage("§e[MatrixSpigotBridge] §cFailed to join Matrix room " + displayName + "!");
+									sender.sendMessage(
+											"§e[MatrixSpigotBridge] §cFailed to join Matrix room " + displayName + "!");
 								}
 							}
 						}
@@ -332,7 +351,7 @@ public class Matrix {
 			}
 			plugin.getLogger().info("Matrix: Messages from these users will not be relayed to Minecraft chat: "
 					+ notSenders.toString());
-			
+
 			JSONArray filterRooms = new JSONArray();
 			for (String rId : joined_room_ids) {
 				filterRooms.put(rId);
@@ -355,7 +374,8 @@ public class Matrix {
 			return 0;
 		}
 
-		// Send first sync (to populate room_history_token and ignore any messages sent before server start)
+		// Send first sync (to populate room_history_token and ignore any messages sent
+		// before server start)
 		try {
 			getLastMessages();
 		} catch (Exception e) {
@@ -402,7 +422,11 @@ public class Matrix {
 			String txnId = nextTxnId();
 			String endpoint = "/_matrix/client/v3/rooms/" + rId + "/send/m.room.message/" + txnId;
 			request("PUT", endpoint, payload);
+		} catch (MatrixApiException e) {
+			// Known API error already logged cleanly with user solution in request()
+			return false;
 		} catch (Exception e) {
+			plugin.getLogger().warning("Unexpected error posting message to Matrix: " + e.getMessage());
 			e.printStackTrace();
 			return false;
 		}
@@ -432,13 +456,16 @@ public class Matrix {
 
 		for (String rId : join_data.keySet()) {
 			JSONObject roomObj = join_data.optJSONObject(rId);
-			if (roomObj == null) continue;
+			if (roomObj == null)
+				continue;
 
 			JSONObject timelineObj = roomObj.optJSONObject("timeline");
-			if (timelineObj == null) continue;
+			if (timelineObj == null)
+				continue;
 
 			JSONArray eventsArr = timelineObj.optJSONArray("events");
-			if (eventsArr == null) continue;
+			if (eventsArr == null)
+				continue;
 
 			for (int i = 0; i < eventsArr.length(); i++) {
 				JSONObject evtObj = eventsArr.getJSONObject(i);
@@ -464,7 +491,11 @@ public class Matrix {
 			try {
 				JSONObject response = new JSONObject(get("/_matrix/client/v3/profile/" + matrixid + "/displayname"));
 				displayname_by_matrixid.put(matrixid, response.getString("displayname"));
+			} catch (MatrixApiException e) {
+				displayname_by_matrixid.put(matrixid, matrixid);
 			} catch (Exception e) {
+				plugin.getLogger()
+						.warning("Unexpected error fetching display name for " + matrixid + ": " + e.getMessage());
 				e.printStackTrace();
 				displayname_by_matrixid.put(matrixid, matrixid);
 			}
@@ -491,7 +522,11 @@ public class Matrix {
 					"/_matrix/client/v3/rooms/" + rId + "/state/m.room.topic",
 					payload);
 			return true;
+		} catch (MatrixApiException e) {
+			// Known API error already logged cleanly with user solution in request()
+			return false;
 		} catch (Exception e) {
+			plugin.getLogger().warning("Unexpected error setting room topic: " + e.getMessage());
 			e.printStackTrace();
 			return false;
 		}
@@ -517,7 +552,11 @@ public class Matrix {
 			String endpoint = "/_matrix/client/v3/rooms/" + rId + "/send/m.reaction/" + txnId;
 			request("PUT", endpoint, payload);
 			return true;
+		} catch (MatrixApiException e) {
+			// Known API error already logged cleanly with user solution in request()
+			return false;
 		} catch (Exception e) {
+			plugin.getLogger().warning("Unexpected error adding reaction: " + e.getMessage());
 			e.printStackTrace();
 			return false;
 		}
@@ -533,6 +572,42 @@ public class Matrix {
 		} catch (Exception e) {
 			return false;
 		}
+	}
+
+	public JSONObject getRoomPowerLevels(String roomId) {
+		if (roomId == null || roomId.trim().isEmpty())
+			return null;
+		try {
+			String res = get("/_matrix/client/v3/rooms/" + roomId.trim() + "/state/m.room.power_levels");
+			return new JSONObject(res);
+		} catch (Exception e) {
+			return null;
+		}
+	}
+
+	public int getBotPowerLevel(String roomId) {
+		JSONObject pl = getRoomPowerLevels(roomId);
+		if (pl == null)
+			return -1;
+
+		JSONObject users = pl.optJSONObject("users");
+		if (users != null && users.has(user_id)) {
+			return users.optInt(user_id, 0);
+		}
+		return pl.optInt("users_default", 0);
+	}
+
+	public int getRequiredPowerLevelForState(String roomId, String stateEventType) {
+		JSONObject pl = getRoomPowerLevels(roomId);
+		if (pl == null)
+			return 50;
+
+		int stateDefault = pl.optInt("state_default", 50);
+		JSONObject events = pl.optJSONObject("events");
+		if (events != null && events.has(stateEventType)) {
+			return events.optInt(stateEventType, stateDefault);
+		}
+		return stateDefault;
 	}
 
 	protected String get(String url) throws Exception {
@@ -581,13 +656,48 @@ public class Matrix {
 				while ((responseLine = br.readLine()) != null) {
 					response.append(responseLine.trim());
 				}
+			} catch (Exception ignored) {
 			}
 
-			// Throw exception with more detailed error message
-			throw new IOException("Server returned HTTP response code: " + statusCode +
-					" for URL: " + server + url + " - Error: " + response.toString());
+			String rawErrorStr = response.toString();
+			String errcode = "";
+			String errorMsg = "";
+
+			try {
+				JSONObject errJson = new JSONObject(rawErrorStr);
+				errcode = errJson.optString("errcode", "");
+				errorMsg = errJson.optString("error", "");
+			} catch (Exception ignored) {
+			}
+
+			String userSolution = buildUserSolution(statusCode, errcode, errorMsg, url);
+
+			plugin.getLogger().warning("Matrix API Error (" + statusCode + "): " + rawErrorStr);
+			plugin.getLogger().warning("-> Solution: " + userSolution);
+
+			throw new MatrixApiException(statusCode, errcode, errorMsg, userSolution,
+					"Server returned HTTP response code: " + statusCode +
+							" for URL: " + server + url + " - Error: " + rawErrorStr);
 		}
 
 		return response.toString();
+	}
+
+	private String buildUserSolution(int statusCode, String errcode, String errorMsg, String url) {
+		if (statusCode == 403 || "M_FORBIDDEN".equalsIgnoreCase(errcode)) {
+			if (url.contains("/state/m.room.topic") || url.contains("/state/")) {
+				return "Permission Denied: The bot user does not have permission to modify room state/topic in Matrix. Please grant Moderator privileges (power level 50+) to the bot user in Matrix room settings.";
+			}
+			return "Permission Denied: The bot user lacks permission to perform this action in Matrix. Please check power levels and user privileges in Matrix room settings.";
+		} else if (statusCode == 401 || "M_UNAUTHORIZED".equalsIgnoreCase(errcode)) {
+			return "Unauthorized: Invalid or expired access token. Please verify 'matrix_access_token' in config.yml or re-authenticate using /msb reload.";
+		} else if (statusCode == 404 || "M_NOT_FOUND".equalsIgnoreCase(errcode)) {
+			return "Not Found: Requested room or endpoint was not found on the Matrix homeserver. Please verify configured room IDs in config.yml.";
+		} else if (statusCode == 429 || "M_LIMIT_EXCEEDED".equalsIgnoreCase(errcode)) {
+			return "Rate Limited: Homeserver rate limit exceeded. Please adjust homeserver rate limits or lower sync/poll frequency.";
+		} else {
+			return "Matrix API call failed (" + (!errcode.isEmpty() ? errcode : ("HTTP " + statusCode))
+					+ "). Please check Matrix homeserver logs and configuration.";
+		}
 	}
 }

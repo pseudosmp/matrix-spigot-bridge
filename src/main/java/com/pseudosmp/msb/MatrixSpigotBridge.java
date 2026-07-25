@@ -221,6 +221,7 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 
 			if (connected) {
 				logger.info("Connected to Matrix server as " + config.matrixUserId + " in room " + config.matrixRoomId);
+				checkAndWarnRoomPowerLevels(sender);
 				// Initialize command handler
 				commandHandler = new MatrixCommandHandler(matrix, config, formatter);
 				// Register commands based on config
@@ -255,6 +256,33 @@ public class MatrixSpigotBridge extends JavaPlugin implements Listener {
 				);
 			}
 		});
+	}
+
+	public void checkAndWarnRoomPowerLevels(CommandSender sender) {
+		if (matrix == null) return;
+
+		boolean topicUpdateActive = config.matrixTopicUpdateInterval > -1 && config.matrixRoomTopicPool != null && !config.matrixRoomTopicPool.isEmpty();
+		boolean topicShutdownActive = !config.getFormat("room_topic_shutdown").isEmpty();
+
+		if (topicUpdateActive || topicShutdownActive) {
+			String chatRoomId = config.getRoomIdForPurpose(MessagePurpose.CHAT);
+			int botLevel = matrix.getBotPowerLevel(chatRoomId);
+			int requiredLevel = matrix.getRequiredPowerLevelForState(chatRoomId, "m.room.topic");
+
+			if (botLevel >= 0 && botLevel < requiredLevel) {
+				String roomName = matrix.getRoomDisplayName(chatRoomId);
+				String warnMsg = "Room topic updating is enabled, but bot user power level (" + botLevel +
+						") in " + roomName + " is lower than required state level (" + requiredLevel +
+						"). Topic updates will fail unless the bot is granted Moderator (level " + requiredLevel + "+) in Matrix room settings.";
+
+				logger.warning(warnMsg);
+				if (sender != null) {
+					Bukkit.getScheduler().runTask(this, () ->
+						sender.sendMessage("§e[MatrixSpigotBridge] §cWarning: " + warnMsg)
+					);
+				}
+			}
+		}
 	}
 
 	private boolean tryPasswordLogin(Matrix matrix, CommandSender sender) {
