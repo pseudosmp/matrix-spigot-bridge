@@ -1,6 +1,7 @@
 # MatrixSpigotBridge v2
 
-![SpigotMC Downloads](https://img.shields.io/spiget/downloads/125450?style=for-the-badge&logo=spigotmc&link=https%3A%2F%2Fwww.spigotmc.org%2Fresources%2Fmatrixspigotbridge-v2.125450)&ensp;![Modrinth Downloads](https://img.shields.io/modrinth/dt/matrixspigotbridge-v2?style=for-the-badge&logo=modrinth&link=https%3A%2F%2Fmodrinth.com%2Fplugin%2Fmatrixspigotbridge-v2) 
+[![SpigotMC Downloads](https://img.shields.io/spiget/downloads/125450?style=for-the-badge&logo=spigotmc)](https://www.spigotmc.org/resources/matrixspigotbridge-v2.125450)&ensp;[![Modrinth Downloads](https://img.shields.io/modrinth/dt/matrixspigotbridge-v2?style=for-the-badge&logo=modrinth)](https://modrinth.com/plugin/matrixspigotbridge-v2)
+
 
 MatrixSpigotBridge is a Spigot plugin that uses [matrix.org](https://matrix.org), an instant messaging protocol, to let interact with the players without logging onto the Minecraft server.
 
